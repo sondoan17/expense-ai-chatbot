@@ -1,0 +1,29 @@
+{
+  "name": "@expense-ai/shared",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext .ts --max-warnings=0",
+    "test": "echo \"TODO: add shared package tests\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.5.4"
+  }
+}
