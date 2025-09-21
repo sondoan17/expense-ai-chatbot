@@ -25,6 +25,7 @@ module.exports = {
     react: {
       version: 'detect',
     },
+    'import/core-modules': ['@expense-ai/shared', '@expense-ai/ui'],
   },
   rules: {
     'react/react-in-jsx-scope': 'off',
