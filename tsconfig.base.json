@@ -13,7 +13,11 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["packages/shared/src/*"],
-      "@ui/*": ["packages/ui/src/*"]
+      "@ui/*": ["packages/ui/src/*"],
+      "@expense-ai/shared": ["packages/shared/src/index"],
+      "@expense-ai/shared/*": ["packages/shared/src/*"],
+      "@expense-ai/ui": ["packages/ui/src/index"],
+      "@expense-ai/ui/*": ["packages/ui/src/*"]
     }
   }
 }
