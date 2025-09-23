@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+﻿import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import "./layout.css";
@@ -14,16 +14,16 @@ export function AppLayout() {
         <div className="sidebar-header">
           <span className="sidebar-logo">EA</span>
           <h2>Expense AI</h2>
-          <p>Personal finance assistant</p>
+          <p>Trợ lý tài chính cá nhân</p>
         </div>
         <nav className="sidebar-nav">
           <NavLink to="chat" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
             <MessageCircle size={18} />
-            <span>Assistant chat</span>
+            <span>Trò chuyện</span>
           </NavLink>
           <NavLink to="dashboard" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
             <PieChart size={18} />
-            <span>Dashboard</span>
+            <span>Tổng quan</span>
           </NavLink>
         </nav>
         <div className="sidebar-footer">
@@ -35,7 +35,7 @@ export function AppLayout() {
             </div>
           </div>
           <button className="logout-button" onClick={logout}>
-            <LogOut size={18} /> Sign out
+            <LogOut size={18} /> Đăng xuất
           </button>
         </div>
       </aside>
@@ -43,7 +43,7 @@ export function AppLayout() {
         <header className="topbar">
           <div className="status-chip" data-online={online}>
             {online ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{online ? "Online" : "Offline"}</span>
+            <span>{online ? "Trực tuyến" : "Ngoại tuyến"}</span>
           </div>
         </header>
         <div className="app-content">

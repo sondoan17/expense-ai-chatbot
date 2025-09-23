@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider, RequireAuth } from './hooks/useAuth';
 import { LoginPage } from './features/auth/LoginPage';

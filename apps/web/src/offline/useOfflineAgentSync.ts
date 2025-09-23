@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { dequeueAgentMessages, peekAgentMessages } from './offlineQueue';
 import { apiClient, extractErrorMessage } from '../api/client';
 import { AgentChatResponse } from '../api/types';
@@ -25,7 +25,7 @@ export function useOfflineAgentSync(onSynced: SyncCallback) {
         } catch (error) {
           onSynced({
             messageId: item.id,
-            error: extractErrorMessage(error, 'Không thể gửi khi trực tuyến'),
+            error: extractErrorMessage(error, 'Không thể gửi khi mất kết nối'),
           });
         }
       }

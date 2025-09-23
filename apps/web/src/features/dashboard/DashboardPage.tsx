@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Doughnut, Line } from "react-chartjs-2";
 import { registerCharts } from "./components/charts";
@@ -128,7 +128,7 @@ export function DashboardPage() {
           accent="success"
         />
         <StatCard
-          label="Còn lại"
+          label="Cân đối"
           value={summaryLoading || !summary ? "..." : formatCurrency(summary.totals.net)}
           accent="primary"
         />
@@ -196,7 +196,7 @@ export function DashboardPage() {
               })}
             </div>
           ) : (
-            <p>Chưa có ngân sách. Hãy tạo ngân sách mới qua trang lập kế hoạch.</p>
+            <p>Chưa có ngân sách. Hãy tạo ngân sách mới trong trang Lập kế hoạch.</p>
           )}
         </section>
 
@@ -212,7 +212,7 @@ export function DashboardPage() {
                 <div key={txn.id} className="recent-item">
                   <div>
                     <span>{formatDate(txn.occurredAt)}</span>
-                    <span className="note">{txn.note ?? txn.category?.name ?? "Kh�ng r�"}</span>
+                    <span className="note">{txn.note ?? txn.category?.name ?? "Không rõ"}</span>
                   </div>
                   <span className={`recent-amount ${txn.type === "EXPENSE" ? "expense" : "income"}`}>
                     {txn.type === "EXPENSE" ? "-" : "+"}

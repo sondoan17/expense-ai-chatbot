@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { ChatBubble } from "./components/ChatBubble";
 import { ChatComposer } from "./components/ChatComposer";
@@ -18,11 +18,11 @@ interface ChatMessageItem {
 }
 
 const SUGGESTIONS = [
-  "Add a 55k milk-tea expense this afternoon",
-  "Show me this month's spending report",
-  "Set a 2,000,000 VND food budget for this month",
-  "Record income of 25,000,000 VND this month",
-  "How much have I spent on transport this week?",
+  'Ghi lại khoản trà sữa 55k chiều nay',
+  'Xem báo cáo chi tiêu tháng này',
+  'Đặt ngân sách ăn uống 2.000.000 VND cho tháng này',
+  'Ghi nhận khoản thu 25.000.000 VND trong tháng này',
+  'Tôi đã chi bao nhiêu cho di chuyển tuần này?',
 ];
 
 function createMessage(
@@ -100,7 +100,7 @@ export function ChatPage() {
       if (!online) {
         await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
         updateMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
-        addMessage(createMessage("assistant", "Message saved, I'll process it once you're back online.", "queued"));
+        addMessage(createMessage("assistant", "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.", "queued"));
         return;
       }
 
@@ -113,9 +113,9 @@ export function ChatPage() {
         if (offlineError) {
           await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
           updateMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
-          addMessage(createMessage("assistant", "Message saved, I'll process it once you're back online.", "queued"));
+          addMessage(createMessage("assistant", "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.", "queued"));
         } else {
-          const message = extractErrorMessage(error, "Unable to send message.");
+          const message = extractErrorMessage(error, "Không thể gửi tin nhắn.");
           updateMessage(outgoing.id, (msg) => ({ ...msg, status: "error" }));
           addMessage(createMessage("assistant", message, "error"));
         }
@@ -138,17 +138,17 @@ export function ChatPage() {
     <div className="chat-container">
       <header className="chat-header">
         <div>
-          <h1>Expense assistant chat</h1>
-          <p className="chat-subtitle">Capture expenses, track budgets, and ask for reports directly in the conversation.</p>
+          <h1>Trò chuyện với trợ lý chi tiêu</h1>
+          <p className="chat-subtitle">Ghi chép chi tiêu, theo dõi ngân sách và yêu cầu báo cáo ngay trong cuộc trò chuyện.</p>
         </div>
         <div className="chat-status-pill" data-online={online}>
-          <span className="dot" /> {online ? "Online" : "Offline"}
+          <span className="dot" /> {online ? "Trực tuyến" : "Ngoại tuyến"}
         </div>
       </header>
       <div className="chat-messages" ref={listRef}>
         {messages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-            Start by saying &quot;Add a 55k milk-tea expense&quot; and see how the assistant records it.
+            Bắt đầu bằng câu “Ghi lại khoản trà sữa 55k” để xem trợ lý ghi nhận giao dịch.
           </div>
         ) : (
           messages.map((message) => (
@@ -156,7 +156,7 @@ export function ChatPage() {
               key={message.id}
               role={message.role}
               status={message.status}
-              timestamp={new Date(message.timestamp).toLocaleTimeString("en-GB", {
+              timestamp={new Date(message.timestamp).toLocaleTimeString("vi-VN", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}

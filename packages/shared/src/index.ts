@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 export enum TimePeriodEnum {
   Today = "today",
@@ -12,61 +12,80 @@ export enum TimePeriodEnum {
 export const TIME_PERIOD_VALUES = Object.values(TimePeriodEnum);
 export type TimePeriod = (typeof TIME_PERIOD_VALUES)[number];
 
+export const CURRENCY_VALUES = ["VND", "USD"] as const;
+export type Currency = (typeof CURRENCY_VALUES)[number];
+
+export const TXN_TYPE_VALUES = ["EXPENSE", "INCOME"] as const;
+export type TxnType = (typeof TXN_TYPE_VALUES)[number];
+
 export const CANONICAL_CATEGORIES = [
-  "An uong",
-  "Di chuyen",
-  "Nha o",
-  "Mua sam",
-  "Giai tri",
-  "Suc khoe",
-  "Giao duc",
-  "Hoa don",
-  "Thu nhap",
-  "Khac",
+  "Ăn uống",
+  "Di chuyển",
+  "Nhà ở",
+  "Mua sắm",
+  "Giải trí",
+  "Sức khỏe",
+  "Giáo dục",
+  "Hóa đơn",
+  "Thu nhập",
+  "Khác",
 ] as const;
 
 export const CATEGORY_SYNONYMS: Record<string, (typeof CANONICAL_CATEGORIES)[number]> = {
-  "an": "An uong",
-  "an uong": "An uong",
-  "an sang": "An uong",
-  "an trua": "An uong",
-  "an toi": "An uong",
-  "do an": "An uong",
-  "cafe": "An uong",
-  "coffee": "An uong",
-  "tra sua": "An uong",
-  "grab": "Di chuyen",
-  "taxi": "Di chuyen",
-  "xe om": "Di chuyen",
-  "xang": "Di chuyen",
-  "bus": "Di chuyen",
-  "ben xe": "Di chuyen",
-  "tien nha": "Nha o",
-  "thue nha": "Nha o",
-  "tien phong": "Nha o",
-  "dien": "Hoa don",
-  "nuoc": "Hoa don",
-  "internet": "Hoa don",
-  "hoa don": "Hoa don",
-  "mua sam": "Mua sam",
-  "shopping": "Mua sam",
-  "quan ao": "Mua sam",
-  "giay dep": "Mua sam",
-  "giai tri": "Giai tri",
-  "xem phim": "Giai tri",
-  "game": "Giai tri",
-  "nhac": "Giai tri",
-  "suc khoe": "Suc khoe",
-  "benh vien": "Suc khoe",
-  "kham": "Suc khoe",
-  "thuoc": "Suc khoe",
-  "giao duc": "Giao duc",
-  "hoc phi": "Giao duc",
-  "khoa hoc": "Giao duc",
-  "sach": "Giao duc",
-  "thu nhap": "Thu nhap",
-  "luong": "Thu nhap",
-  "thuong": "Thu nhap",
+  "ăn": "Ăn uống",
+  "ăn uống": "Ăn uống",
+  "ăn sáng": "Ăn uống",
+  "ăn trưa": "Ăn uống",
+  "ăn tối": "Ăn uống",
+  "đồ ăn": "Ăn uống",
+  "đi chợ": "Ăn uống",
+  "cafe": "Ăn uống",
+  "cà phê": "Ăn uống",
+  "coffee": "Ăn uống",
+  "trà sữa": "Ăn uống",
+  "di chuyển": "Di chuyển",
+  "đi lại": "Di chuyển",
+  "grab": "Di chuyển",
+  "taxi": "Di chuyển",
+  "xe ôm": "Di chuyển",
+  "xăng": "Di chuyển",
+  "bus": "Di chuyển",
+  "bến xe": "Di chuyển",
+  "nhà": "Nhà ở",
+  "tiền nhà": "Nhà ở",
+  "thuê nhà": "Nhà ở",
+  "tiền phòng": "Nhà ở",
+  "điện": "Hóa đơn",
+  "nước": "Hóa đơn",
+  "internet": "Hóa đơn",
+  "wifi": "Hóa đơn",
+  "hóa đơn": "Hóa đơn",
+  "truyền hình": "Hóa đơn",
+  "mua sắm": "Mua sắm",
+  "shopping": "Mua sắm",
+  "quần áo": "Mua sắm",
+  "giày dép": "Mua sắm",
+  "phụ kiện": "Mua sắm",
+  "giải trí": "Giải trí",
+  "xem phim": "Giải trí",
+  "game": "Giải trí",
+  "nhạc": "Giải trí",
+  "concert": "Giải trí",
+  "sức khỏe": "Sức khỏe",
+  "y tế": "Sức khỏe",
+  "bệnh viện": "Sức khỏe",
+  "khám": "Sức khỏe",
+  "thuốc": "Sức khỏe",
+  "giáo dục": "Giáo dục",
+  "học phí": "Giáo dục",
+  "khóa học": "Giáo dục",
+  "sách": "Giáo dục",
+  "lớp học": "Giáo dục",
+  "thu nhập": "Thu nhập",
+  "lương": "Thu nhập",
+  "thưởng": "Thu nhập",
+  "lãi": "Thu nhập",
+  "khác": "Khác",
 };
 
 export function normalizeVietnamese(input: string): string {
@@ -126,7 +145,7 @@ export const AgentPayloadSchema = z.object({
   intent: IntentSchema,
   language: z.enum(["vi", "en"]).default("vi"),
   amount: z.number().optional(),
-  currency: z.enum(["VND", "USD"]).optional(),
+  currency: z.enum(CURRENCY_VALUES).optional(),
   category: z.string().optional(),
   note: z.string().optional(),
   occurred_at: z.string().datetime().optional(),
@@ -140,3 +159,8 @@ export const AgentPayloadSchema = z.object({
 
 export type Intent = z.infer<typeof IntentSchema>;
 export type AgentPayload = z.infer<typeof AgentPayloadSchema>;
+
+
+
+
+

@@ -1,4 +1,4 @@
-import {
+﻿import {
   PropsWithChildren,
   createContext,
   useCallback,
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const from = state?.from ?? "/app";
         navigate(from, { replace: true });
       } catch (error) {
-        throw new Error(extractErrorMessage(error, "Login failed"));
+        throw new Error(extractErrorMessage(error, "Đăng nhập thất bại"));
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +113,7 @@ export function RequireAuth({ children }: PropsWithChildren) {
   const location = useLocation();
 
   if (isLoading) {
-    return <div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>;
+    return <div style={{ padding: "2rem", textAlign: "center" }}>Đang tải...</div>;
   }
 
   if (!token || !user) {

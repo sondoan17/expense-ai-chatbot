@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+﻿import { FormEvent, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { extractErrorMessage } from "../../api/client";
 import "./auth.css";
@@ -15,7 +15,7 @@ export function LoginPage() {
     try {
       await login({ email, password });
     } catch (err) {
-      setError(extractErrorMessage(err, "Login failed"));
+      setError(extractErrorMessage(err, "Đăng nhập thất bại"));
     }
   };
 
@@ -24,8 +24,8 @@ export function LoginPage() {
       <div className="auth-card">
         <div className="auth-header">
           <span className="auth-badge">Expense AI</span>
-          <h1>Welcome back</h1>
-          <p>Sign in with your email and password to chat with your expense assistant.</p>
+          <h1>Chào mừng trở lại</h1>
+          <p>Đăng nhập bằng email và mật khẩu để trò chuyện với trợ lý chi tiêu.</p>
         </div>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -34,26 +34,26 @@ export function LoginPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
+              placeholder="ban@vidu.com"
               required
             />
           </label>
           <label>
-            Password
+            Mật khẩu
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter your password"
+              placeholder="Nhập mật khẩu"
               required
             />
           </label>
           {error ? <p className="auth-error">{error}</p> : null}
           <button type="submit" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
-        <p className="auth-footer">Need an account? Call the backend `/auth/register` endpoint to create one.</p>
+        <p className="auth-footer">Cần tài khoản? Gọi endpoint `/auth/register` để tạo mới.</p>
       </div>
     </div>
   );

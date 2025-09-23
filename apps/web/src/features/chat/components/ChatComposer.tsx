@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+﻿import { FormEvent, useState } from "react";
 import { Send } from "lucide-react";
 
 interface ChatComposerProps {
@@ -22,11 +22,11 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
       <textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Type a message for the assistant..."
+        placeholder="Nhập tin nhắn cho trợ lý..."
         disabled={disabled}
       />
       <button type="submit" disabled={disabled || !value.trim()}>
-        <Send size={18} /> Send
+        <Send size={18} /> Gửi
       </button>
     </form>
   );
