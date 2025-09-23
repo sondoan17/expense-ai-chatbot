@@ -1,4 +1,14 @@
-export const bootstrap = () => {
-  // Phase 1 will mount the React application here.
-  return 'web-app-not-implemented-yet';
-};
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { App } from './App';
+import './index.css';
+// eslint-disable-next-line import/no-unresolved
+import { registerSW } from 'virtual:pwa-register';
+
+registerSW({ immediate: true });
+
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
