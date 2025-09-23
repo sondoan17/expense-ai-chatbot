@@ -16,7 +16,7 @@ import { TransactionSummaryQueryDto } from '../transactions/dto/transaction-summ
 import { ListTransactionsQueryDto } from '../transactions/dto/list-transactions-query.dto';
 import { PublicUser } from '../users/types/public-user.type';
 import { AgentChatResult } from './types/agent-response.type';
-import { Currency, TxnType } from '@prisma/client';
+import { ChatMessageStatus, ChatRole, Currency, Prisma, TxnType } from '@prisma/client';
 import { DateTime } from 'luxon';
 
 const DEFAULT_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -24,6 +24,9 @@ const DEFAULT_RECENT_COUNT = 5;
 
 type AgentLanguage = 'vi' | 'en';
 const DEFAULT_LANGUAGE: AgentLanguage = 'vi';
+
+type TransactionResult = Awaited<ReturnType<TransactionsService['create']>>;
+type BudgetStatusResult = Awaited<ReturnType<BudgetsService['status']>>;
 
 @Injectable()
 export class AgentService {
@@ -52,6 +55,8 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
       };
     }
 
+    await this.persistUserMessage(user.id, trimmed);
+
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
     const now = new Date();
     const systemPrompt = this.buildClassificationPrompt(now, timezone);
@@ -76,61 +81,122 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
       payload = this.parseAgentPayload(raw);
     } catch (error) {
       this.logger.error('Agent classification failed', error instanceof Error ? error.stack : error);
-      return {
+      return this.finalizeResponse(user.id, {
         reply: this.buildClassificationErrorReply(fallbackLanguage),
         intent: 'error',
         error: error instanceof Error ? error.message : String(error),
-      };
+      });
     }
 
     const language = this.getLanguageFromPayload(payload);
 
     if (payload.confidence !== undefined && payload.confidence < 0.6) {
-      return {
+      return this.finalizeResponse(user.id, {
         reply: this.buildLowConfidenceReply(language),
         intent: 'clarify',
         parsed: payload,
-      };
+      });
     }
 
     try {
+      let result: AgentChatResult;
+
       switch (payload.intent) {
         case 'add_expense':
         case 'add_income':
-          return await this.handleAddTransaction(user, trimmed, payload, language);
+          result = await this.handleAddTransaction(user, trimmed, payload, language);
+          break;
         case 'set_budget':
-          return await this.handleSetBudget(user, payload, timezone, language);
+          result = await this.handleSetBudget(user, payload, timezone, language);
+          break;
         case 'get_budget_status':
-          return await this.handleBudgetStatus(user, payload, timezone, language);
+          result = await this.handleBudgetStatus(user, payload, timezone, language);
+          break;
         case 'query_total':
         case 'query_by_category':
-          return await this.handleSummary(user, payload, timezone, language);
+          result = await this.handleSummary(user, payload, timezone, language);
+          break;
         case 'list_recent':
-          return await this.handleListRecent(user, payload, timezone, language);
+          result = await this.handleListRecent(user, payload, timezone, language);
+          break;
         case 'undo_or_delete':
-          return {
+          result = {
             reply: this.buildUndoNotSupportedReply(language),
             intent: 'clarify',
             parsed: payload,
           };
+          break;
         case 'small_talk':
-          return this.handleSmallTalk(user, payload, language);
+          result = this.handleSmallTalk(user, payload, language);
+          break;
         default:
-          return {
+          result = {
             reply: this.buildUnsupportedIntentReply(language),
             intent: 'error',
             parsed: payload,
           };
+          break;
       }
+
+      return this.finalizeResponse(user.id, result);
     } catch (error) {
       this.logger.error('Agent handler failed', error instanceof Error ? error.stack : error);
-      return {
+      return this.finalizeResponse(user.id, {
         reply: this.buildHandlerErrorReply(language),
         intent: 'error',
         parsed: payload,
         error: error instanceof Error ? error.message : String(error),
-      };
+      });
     }
+  }
+
+  async getHistory(user: PublicUser, limit = 200) {
+    const take = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 500) : 200;
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+      take,
+    });
+
+    return messages.map((message) => ({
+      id: message.id,
+      role: message.role === ChatRole.USER ? 'user' : 'assistant',
+      status: message.status === ChatMessageStatus.ERROR ? 'error' : 'sent',
+      content: message.content,
+      createdAt: message.createdAt,
+    }));
+  }
+
+  private async persistUserMessage(userId: string, content: string): Promise<void> {
+    try {
+      await this.prisma.chatMessage.create({
+        data: {
+          userId,
+          role: ChatRole.USER,
+          status: ChatMessageStatus.SENT,
+          content,
+        },
+      });
+    } catch (error) {
+      this.logger.error("Failed to persist user message", error instanceof Error ? error.stack : error);
+    }
+  }
+
+  private async finalizeResponse(userId: string, result: AgentChatResult): Promise<AgentChatResult> {
+    try {
+      await this.prisma.chatMessage.create({
+        data: {
+          userId,
+          role: ChatRole.ASSISTANT,
+          status: result.error ? ChatMessageStatus.ERROR : ChatMessageStatus.SENT,
+          content: result.reply,
+        },
+      });
+    } catch (error) {
+      this.logger.error("Failed to persist assistant message", error instanceof Error ? error.stack : error);
+    }
+
+    return result;
   }
 
   private buildClassificationPrompt(now: Date, timezone: string): string {
@@ -179,12 +245,21 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
     const amountLabel = this.formatCurrency(transaction.amount, transaction.currency, language);
     const categoryLabel = transaction.category?.name ?? categoryName ?? null;
 
+    let reply = this.buildTransactionSavedReply(language, {
+      type,
+      amount: amountLabel,
+      category: categoryLabel,
+    });
+
+    if (type === TxnType.EXPENSE) {
+      const warnings = await this.collectBudgetWarnings(user, transaction, language);
+      if (warnings.length > 0) {
+        reply = `${reply}\n${warnings.join('\n')}`;
+      }
+    }
+
     return {
-      reply: this.buildTransactionSavedReply(language, {
-        type,
-        amount: amountLabel,
-        category: categoryLabel,
-      }),
+      reply,
       intent: payload.intent,
       parsed: payload,
       data: { transaction },
@@ -275,6 +350,10 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
     const limitLabel = this.formatCurrency(status.budget.limitAmount, status.budget.currency, language);
     const percentLabel = `${status.percentage}%`;
     const remainingLabel = this.formatCurrency(status.remaining, status.budget.currency, language);
+    const overspentLabel =
+      status.overBudget && status.overspent > 0
+        ? this.formatCurrency(status.overspent, status.budget.currency, language)
+        : undefined;
     const endDateLabel = status.range?.end ? this.formatDate(status.range.end, timezone) : undefined;
 
     return {
@@ -284,11 +363,62 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
         percentLabel,
         remainingLabel,
         endDateLabel,
+        overBudget: status.overBudget,
+        overspentLabel,
       }),
       intent: payload.intent,
       parsed: payload,
       data: { status },
     };
+  }
+
+  private async collectBudgetWarnings(
+    user: PublicUser,
+    transaction: TransactionResult,
+    language: AgentLanguage,
+  ): Promise<string[]> {
+    const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
+    const occurredAt = DateTime.fromISO(transaction.occurredAt).setZone(timezone);
+
+    const where: Prisma.BudgetWhereInput = {
+      userId: user.id,
+      month: occurredAt.month,
+      year: occurredAt.year,
+      currency: transaction.currency,
+    };
+
+    if (transaction.category?.id) {
+      where.OR = [{ categoryId: transaction.category.id }, { categoryId: null }];
+    } else {
+      where.categoryId = null;
+    }
+
+    const budgets = await this.prisma.budget.findMany({ where });
+
+    if (!budgets.length) {
+      return [];
+    }
+
+    const statuses = await Promise.all(
+      budgets.map((budget) => this.budgetsService.status(user.id, budget.id)),
+    );
+
+    return statuses
+      .filter((status) => status.overBudget)
+      .map((status) => this.buildBudgetExceededWarning(language, status));
+  }
+
+  private buildBudgetExceededWarning(
+    language: AgentLanguage,
+    status: BudgetStatusResult,
+  ): string {
+    const target = this.getBudgetTargetLabel(language, status.budget.category?.name ?? null);
+    const monthLabel = this.formatMonthYear(status.budget.month, status.budget.year, language);
+    const overspentLabel = this.formatCurrency(status.overspent, status.budget.currency, language);
+
+    return language === 'vi'
+      ? `Bạn đã vượt ${target} ${overspentLabel} trong ${monthLabel}.`
+      : `You've exceeded ${target} by ${overspentLabel} in ${monthLabel}.`;
   }
 
   private async handleSummary(
@@ -786,17 +916,41 @@ Rules: JSON only, no code fences or prose. Detect language; default vi when Viet
       percentLabel: string;
       remainingLabel: string;
       endDateLabel?: string;
+      overBudget: boolean;
+      overspentLabel?: string;
     },
   ): string {
-    const { amountLabel, limitLabel, percentLabel, remainingLabel, endDateLabel } = params;
+    const {
+      amountLabel,
+      limitLabel,
+      percentLabel,
+      remainingLabel,
+      endDateLabel,
+      overBudget,
+      overspentLabel,
+    } = params;
     const trailing = endDateLabel
       ? language === 'vi'
         ? ` Ngân sách kết thúc vào ${endDateLabel}.`
         : ` The budget ends on ${endDateLabel}.`
       : '';
+
+    if (overBudget && overspentLabel) {
+      const warning = language === 'vi'
+        ? ` Cảnh báo: bạn đã vượt ngân sách ${overspentLabel}.`
+        : ` Warning: you're over budget by ${overspentLabel}.`;
+      return language === 'vi'
+        ? `Bạn đang dùng ${amountLabel} / ${limitLabel} (${percentLabel}).${warning}${trailing}`
+        : `You've spent ${amountLabel} / ${limitLabel} (${percentLabel}).${warning}${trailing}`;
+    }
+
+    const remainingSentence = language === 'vi'
+      ? ` Còn lại ${remainingLabel}.`
+      : ` Remaining ${remainingLabel}.`;
+
     return language === 'vi'
-      ? `Bạn đang dùng ${amountLabel} / ${limitLabel} (${percentLabel}). Còn lại ${remainingLabel}.${trailing}`
-      : `You've spent ${amountLabel} / ${limitLabel} (${percentLabel}). Remaining ${remainingLabel}.${trailing}`;
+      ? `Bạn đang dùng ${amountLabel} / ${limitLabel} (${percentLabel}).${remainingSentence}${trailing}`
+      : `You've spent ${amountLabel} / ${limitLabel} (${percentLabel}).${remainingSentence}${trailing}`;
   }
 
   private buildSummaryByCategoryReply(

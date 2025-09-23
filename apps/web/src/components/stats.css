@@ -80,6 +80,17 @@
   transition: width 0.4s ease;
 }
 
+.budget-progress-bar.over {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+}
+
+.budget-warning {
+  margin-top: 0.5rem;
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .dashboard-section {
   display: grid;
   gap: 1.2rem;

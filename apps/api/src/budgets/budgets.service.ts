@@ -101,16 +101,23 @@ export class BudgetsService {
       _sum: { amount: true },
     });
 
-    const spent = aggregate._sum.amount?.toNumber() ?? 0;
+    const sumAmount = aggregate._sum.amount;
+    const spent = sumAmount ? sumAmount.toNumber() : 0;
     const limit = budget.limitAmount.toNumber();
-    const remaining = Math.max(limit - spent, 0);
-    const percentage = limit === 0 ? 0 : Number(((spent / limit) * 100).toFixed(2));
+    const remainingRaw = limit - spent;
+    const overBudget = remainingRaw < 0;
+    const overspent = overBudget ? Math.abs(remainingRaw) : 0;
+    const remaining = overBudget ? 0 : remainingRaw;
+    const percentage =
+      limit > 0 ? Number(((spent / limit) * 100).toFixed(2)) : spent > 0 ? 100 : 0;
 
     return {
       budget: this.toResponse(budget),
       spent,
       remaining,
       percentage,
+      overBudget,
+      overspent,
       range: {
         start: start?.toISOString(),
         end: end?.toISOString(),

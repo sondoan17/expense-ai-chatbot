@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+﻿import { DateTime } from "luxon";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, Currency, TxnType } from "@prisma/client";
@@ -162,7 +162,7 @@ export class TransactionsService {
         const category = categoryMap.get(group.categoryId!);
         return {
           categoryId: group.categoryId!,
-          categoryName: category?.name ?? "Khac",
+          categoryName: category?.name ?? "Khác",
           amount: sumAmount,
         };
       })
@@ -221,4 +221,5 @@ export class TransactionsService {
     return DateTime.now().setZone(timezone).toJSDate();
   }
 }
+
 

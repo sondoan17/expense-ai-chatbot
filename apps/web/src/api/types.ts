@@ -95,11 +95,21 @@ export interface BudgetStatusResponse {
   budget: BudgetDto;
   spent: number;
   remaining: number;
+  overBudget: boolean;
+  overspent: number;
   percentage: number;
   range?: {
     start?: string;
     end?: string;
   };
+}
+
+export interface ChatMessageDto {
+  id: string;
+  role: 'user' | 'assistant';
+  status: 'sent' | 'error';
+  content: string;
+  createdAt: string;
 }
 
 export interface AgentChatResponse {
@@ -110,3 +120,4 @@ export interface AgentChatResponse {
   meta?: unknown;
   error?: string;
 }
+

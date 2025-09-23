@@ -221,6 +221,10 @@ export function DashboardPage() {
             <div className="budget-list">
               {budgets.map((budget) => {
                 const pct = Math.min(100, Math.round(budget.percentage));
+                const overBudget = budget.overBudget;
+                const progressClass = "budget-progress-bar" + (overBudget ? " over" : "");
+                const remainingLabel = formatCurrency(budget.remaining, budget.budget.currency);
+                const overspentLabel = formatCurrency(budget.overspent, budget.budget.currency);
                 return (
                   <div key={budget.budget.id} className="budget-card">
                     <div className="budget-header">
@@ -238,8 +242,13 @@ export function DashboardPage() {
                       </div>
                     </div>
                     <div className="budget-progress-track">
-                      <div className="budget-progress-bar" style={{ width: `${pct}%` }} />
+                      <div className={progressClass} style={{ width: `${pct}%` }} />
                     </div>
+                    {overBudget ? (
+                      <div className="budget-warning">Đã vượt {overspentLabel}</div>
+                    ) : (
+                      <div className="budget-subtitle">Còn lại {remainingLabel}</div>
+                    )}
                   </div>
                 );
               })}

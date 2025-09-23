@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+﻿import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, TxnType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -88,7 +88,7 @@ export class ReportsService {
         const category = categoryMap.get(group.categoryId!);
         return {
           categoryId: group.categoryId!,
-          categoryName: category?.name ?? "Khac",
+          categoryName: category?.name ?? "Khác",
           amount: sumAmount,
         };
       })
@@ -128,3 +128,4 @@ export class ReportsService {
     return this.configService.get<string>("APP_TIMEZONE") ?? DEFAULT_TIMEZONE;
   }
 }
+
