@@ -17,7 +17,7 @@
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate deploy",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed"
   },
