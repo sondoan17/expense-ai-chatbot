@@ -31,5 +31,7 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
   },
-  ignorePatterns: ['node_modules/', 'dist/', 'build/', '.turbo/', 'coverage/'],
+  ignorePatterns: ['node_modules/', 'dist/', 'build/', '.turbo/', 'coverage/', '**/dev-dist/'],
 };
+
+
