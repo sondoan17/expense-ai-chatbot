@@ -3,16 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const defaultCategories = [
-  { name: 'An uong', icon: 'food' },
-  { name: 'Di chuyen', icon: 'transport' },
-  { name: 'Nha o', icon: 'home' },
-  { name: 'Mua sam', icon: 'shopping' },
-  { name: 'Giai tri', icon: 'entertainment' },
-  { name: 'Suc khoe', icon: 'health' },
-  { name: 'Giao duc', icon: 'education' },
-  { name: 'Hoa don', icon: 'bills' },
-  { name: 'Thu nhap', icon: 'income' },
-  { name: 'Khac', icon: 'other' },
+  { name: 'Ăn uống', icon: 'food' },
+  { name: 'Di chuyển', icon: 'transport' },
+  { name: 'Nhà ở', icon: 'home' },
+  { name: 'Mua sắm', icon: 'shopping' },
+  { name: 'Giải trí', icon: 'entertainment' },
+  { name: 'Sức khỏe', icon: 'health' },
+  { name: 'Giáo dục', icon: 'education' },
+  { name: 'Hóa đơn', icon: 'bills' },
+  { name: 'Thu nhập', icon: 'income' },
+  { name: 'Khác', icon: 'other' },
 ];
 
 async function main() {

@@ -1,8 +1,18 @@
 -- CreateEnum
-CREATE TYPE "public"."Currency" AS ENUM ('VND', 'USD');
+DO $$
+BEGIN
+  CREATE TYPE "public"."Currency" AS ENUM ('VND', 'USD');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "public"."TxnType" AS ENUM ('EXPENSE', 'INCOME');
+DO $$
+BEGIN
+  CREATE TYPE "public"."TxnType" AS ENUM ('EXPENSE', 'INCOME');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -85,3 +95,8 @@ ALTER TABLE "public"."Budget" ADD CONSTRAINT "Budget_userId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "public"."Budget" ADD CONSTRAINT "Budget_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "public"."Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+
+
