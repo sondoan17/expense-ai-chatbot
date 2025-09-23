@@ -98,3 +98,14 @@
   font-size: 0.9rem;
   text-align: center;
 }
+
+.auth-footer a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+

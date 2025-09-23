@@ -1,8 +1,8 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChatBubble } from "./components/ChatBubble";
 import { ChatComposer } from "./components/ChatComposer";
-import { AgentChatResponse } from "../../api/types";
+import { AgentChatResponse, ChatMessageDto } from "../../api/types";
 import { apiClient, extractErrorMessage, isNetworkError } from "../../api/client";
 import { enqueueAgentMessage } from "../../offline/offlineQueue";
 import { useOfflineAgentSync } from "../../offline/useOfflineAgentSync";
@@ -15,20 +15,22 @@ interface ChatMessageItem {
   content: string;
   timestamp: string;
   status: "sent" | "pending" | "queued" | "error";
+  localOnly?: boolean;
 }
 
 const SUGGESTIONS = [
-  'Ghi lại khoản trà sữa 55k chiều nay',
-  'Xem báo cáo chi tiêu tháng này',
-  'Đặt ngân sách ăn uống 2.000.000 VND cho tháng này',
-  'Ghi nhận khoản thu 25.000.000 VND trong tháng này',
-  'Tôi đã chi bao nhiêu cho di chuyển tuần này?',
+  "Ghi lại khoản trà sữa 55k chiều nay",
+  "Xem báo cáo chi tiêu tháng này",
+  "Đặt ngân sách ăn uống 2.000.000 VND cho tháng này",
+  "Ghi nhận khoản thu 25.000.000 VND trong tháng này",
+  "Tôi đã chi bao nhiêu cho di chuyển tuần này?",
 ];
 
 function createMessage(
   role: "user" | "assistant",
   content: string,
   status: ChatMessageItem["status"] = "sent",
+  overrides: Partial<ChatMessageItem> = {},
 ): ChatMessageItem {
   const id =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -41,39 +43,95 @@ function createMessage(
     content,
     status,
     timestamp: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function mapServerMessage(message: ChatMessageDto): ChatMessageItem {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    status: message.status,
+    timestamp: message.createdAt,
   };
 }
 
 export function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessageItem[]>(() => {
-    const cached = localStorage.getItem("expense-ai-chat-log");
-    if (!cached) return [];
-    try {
-      return JSON.parse(cached) as ChatMessageItem[];
-    } catch (error) {
-      console.warn("Failed to parse cached chat log", error);
-      return [];
-    }
-  });
+  const [pendingMessages, setPendingMessages] = useState<ChatMessageItem[]>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
   const online = useOnlineStatus();
 
-  useEffect(() => {
-    localStorage.setItem("expense-ai-chat-log", JSON.stringify(messages));
-  }, [messages]);
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    isFetching: historyFetching,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ["chat-history"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ChatMessageDto[]>("/agent/history", {
+        params: { limit: 200 },
+      });
+      return data;
+    },
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchOnMount: "always",
+  });
+
+  const historyMessages = useMemo(
+    () => (historyData ?? []).map(mapServerMessage),
+    [historyData],
+  );
+
+  const combinedMessages = useMemo(
+    () => [...historyMessages, ...pendingMessages],
+    [historyMessages, pendingMessages],
+  );
 
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [combinedMessages]);
 
-  const updateMessage = useCallback((id: string, updater: (msg: ChatMessageItem) => ChatMessageItem) => {
-    setMessages((prev) => prev.map((msg) => (msg.id === id ? updater(msg) : msg)));
+  useEffect(() => {
+    if (!historyFetching) {
+      setPendingMessages((prev) =>
+        prev.filter((msg) => !(msg.localOnly && msg.status === "sent")),
+      );
+    }
+  }, [historyFetching, historyData]);
+
+  const addPendingMessage = useCallback((msg: ChatMessageItem) => {
+    setPendingMessages((prev) => [...prev, msg]);
   }, []);
 
-  const addMessage = useCallback((msg: ChatMessageItem) => {
-    setMessages((prev) => [...prev, msg]);
-  }, []);
+  const updatePendingMessage = useCallback(
+    (id: string, updater: (msg: ChatMessageItem) => ChatMessageItem) => {
+      setPendingMessages((prev) => prev.map((msg) => (msg.id === id ? updater(msg) : msg)));
+    },
+    [],
+  );
+
+  const handleOfflineSync = useCallback(
+    ({ messageId, response, error }: { messageId: string; response?: AgentChatResponse; error?: string }) => {
+      if (response) {
+        updatePendingMessage(messageId, (msg) => ({ ...msg, status: "sent" }));
+        setPendingMessages((prev) =>
+          prev.filter((msg) => !(msg.localOnly && msg.role === "assistant" && msg.status === "queued")),
+        );
+        addPendingMessage(createMessage("assistant", response.reply, "sent", { localOnly: true }));
+        void refetchHistory();
+      } else if (error) {
+        updatePendingMessage(messageId, (msg) => ({ ...msg, status: "error" }));
+        addPendingMessage(createMessage("assistant", error, "error", { localOnly: true }));
+      }
+    },
+    [addPendingMessage, refetchHistory, updatePendingMessage],
+  );
+
+  useOfflineAgentSync(handleOfflineSync);
 
   const { mutateAsync: sendToAgent, isPending } = useMutation({
     mutationFn: async (payload: { message: string }) => {
@@ -82,46 +140,53 @@ export function ChatPage() {
     },
   });
 
-  useOfflineAgentSync(({ messageId, response, error }) => {
-    if (response) {
-      updateMessage(messageId, (msg) => ({ ...msg, status: "sent" }));
-      addMessage(createMessage("assistant", response.reply));
-    } else if (error) {
-      updateMessage(messageId, (msg) => ({ ...msg, status: "error" }));
-      addMessage(createMessage("assistant", error, "error"));
-    }
-  });
-
   const handleSend = useCallback(
     async (text: string) => {
-      const outgoing = createMessage("user", text, "pending");
-      addMessage(outgoing);
+      const outgoing = createMessage("user", text, online ? "pending" : "queued", {
+        localOnly: true,
+      });
+      addPendingMessage(outgoing);
 
       if (!online) {
         await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
-        updateMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
-        addMessage(createMessage("assistant", "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.", "queued"));
+        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
+        addPendingMessage(
+          createMessage(
+            "assistant",
+            "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.",
+            "queued",
+            { localOnly: true },
+          ),
+        );
         return;
       }
 
       try {
         const response = await sendToAgent({ message: text });
-        updateMessage(outgoing.id, (msg) => ({ ...msg, status: "sent" }));
-        addMessage(createMessage("assistant", response.reply));
+        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "sent" }));
+        addPendingMessage(createMessage("assistant", response.reply, "sent", { localOnly: true }));
+        await refetchHistory();
       } catch (error) {
         const offlineError = isNetworkError(error) || navigator.onLine === false;
         if (offlineError) {
           await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
-          updateMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
-          addMessage(createMessage("assistant", "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.", "queued"));
+          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
+          addPendingMessage(
+            createMessage(
+              "assistant",
+              "Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.",
+              "queued",
+              { localOnly: true },
+            ),
+          );
         } else {
           const message = extractErrorMessage(error, "Không thể gửi tin nhắn.");
-          updateMessage(outgoing.id, (msg) => ({ ...msg, status: "error" }));
-          addMessage(createMessage("assistant", message, "error"));
+          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "error" }));
+          addPendingMessage(createMessage("assistant", message, "error", { localOnly: true }));
         }
       }
     },
-    [addMessage, online, sendToAgent, updateMessage],
+    [addPendingMessage, online, refetchHistory, sendToAgent, updatePendingMessage],
   );
 
   const suggestionButtons = useMemo(
@@ -133,6 +198,8 @@ export function ChatPage() {
       )),
     [handleSend, isPending],
   );
+
+  const isEmpty = combinedMessages.length === 0;
 
   return (
     <div className="chat-container">
@@ -146,12 +213,12 @@ export function ChatPage() {
         </div>
       </header>
       <div className="chat-messages" ref={listRef}>
-        {messages.length === 0 ? (
+        {isEmpty ? (
           <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-            Bắt đầu bằng câu “Ghi lại khoản trà sữa 55k” để xem trợ lý ghi nhận giao dịch.
+            {historyLoading ? "Đang tải lịch sử hội thoại..." : "Bắt đầu bằng câu “Ghi lại khoản trà sữa 55k” để xem trợ lý ghi nhận giao dịch."}
           </div>
         ) : (
-          messages.map((message) => (
+          combinedMessages.map((message) => (
             <ChatBubble
               key={message.id}
               role={message.role}
@@ -173,4 +240,3 @@ export function ChatPage() {
     </div>
   );
 }
-

@@ -16,11 +16,16 @@ interface Credentials {
   password: string;
 }
 
+interface RegisterInput extends Credentials {
+  name?: string;
+}
+
 interface AuthContextValue {
   user: UserDto | null;
   token: string | null;
   isLoading: boolean;
   login: (credentials: Credentials) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   logout: () => void;
 }
 
@@ -84,6 +89,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [location.state, navigate],
   );
 
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      setIsLoading(true);
+      try {
+        const { data } = await apiClient.post<AuthResponse>("/auth/register", input);
+        setAuthToken(data.accessToken);
+        localStorage.setItem(TOKEN_KEY, data.accessToken);
+        setToken(data.accessToken);
+        setUser(data.user);
+        navigate("/app", { replace: true });
+      } catch (error) {
+        throw new Error(extractErrorMessage(error, "Đăng ký thất bại"));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [navigate],
+  );
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setAuthToken(null);
@@ -93,8 +117,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [navigate]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, isLoading, login, logout }),
-    [user, token, isLoading, login, logout],
+    () => ({ user, token, isLoading, login, register, logout }),
+    [user, token, isLoading, login, register, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

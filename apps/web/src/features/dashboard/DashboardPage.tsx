@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Doughnut, Line } from "react-chartjs-2";
 import { registerCharts } from "./components/charts";
@@ -16,6 +16,13 @@ import { Currency } from "@expense-ai/shared";
 
 registerCharts();
 
+const REFRESH_OPTIONS = {
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMount: "always" as const,
+};
+
 function useSummary() {
   return useQuery({
     queryKey: ["transactions-summary", "this_month"],
@@ -25,6 +32,7 @@ function useSummary() {
       });
       return data;
     },
+    ...REFRESH_OPTIONS,
   });
 }
 
@@ -37,6 +45,7 @@ function useOverview() {
       });
       return data;
     },
+    ...REFRESH_OPTIONS,
   });
 }
 
@@ -45,6 +54,9 @@ function useBudgets() {
     queryKey: ["budgets-status"],
     queryFn: async () => {
       const { data: budgets } = await apiClient.get<BudgetStatusResponse["budget"][]>("/budgets");
+      if (!budgets.length) {
+        return [] as BudgetStatusResponse[];
+      }
       const statuses = await Promise.all(
         budgets.map(async (budget) => {
           const { data } = await apiClient.get<BudgetStatusResponse>(`/budgets/${budget.id}/status`);
@@ -53,13 +65,29 @@ function useBudgets() {
       );
       return statuses;
     },
+    ...REFRESH_OPTIONS,
   });
 }
 
 export function DashboardPage() {
-  const { data: summary, isLoading: summaryLoading } = useSummary();
-  const { data: overview, isLoading: overviewLoading } = useOverview();
-  const { data: budgets, isLoading: budgetsLoading } = useBudgets();
+  const summaryQuery = useSummary();
+  const overviewQuery = useOverview();
+  const budgetsQuery = useBudgets();
+
+  const { data: summary, isLoading: summaryLoading } = summaryQuery;
+  const { data: overview, isLoading: overviewLoading } = overviewQuery;
+  const { data: budgets, isLoading: budgetsLoading } = budgetsQuery;
+
+  const isRefreshing =
+    summaryQuery.isFetching || overviewQuery.isFetching || budgetsQuery.isFetching;
+
+  const handleRefresh = useCallback(() => {
+    void Promise.all([
+      summaryQuery.refetch(),
+      overviewQuery.refetch(),
+      budgetsQuery.refetch(),
+    ]);
+  }, [summaryQuery, overviewQuery, budgetsQuery]);
 
   const doughnutData = useMemo(() => {
     if (!summary || summary.byCategory.length === 0) return null;
@@ -116,6 +144,21 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-section">
+      <header className="dashboard-header">
+        <div>
+          <h1>Bảng điều khiển</h1>
+          <p>Theo dõi tổng quan thu chi và ngân sách được cập nhật liên tục.</p>
+        </div>
+        <button
+          type="button"
+          className="refresh-button"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? "Đang làm mới..." : "Làm mới dữ liệu"}
+        </button>
+      </header>
+
       <div className="stat-grid">
         <StatCard
           label="Tổng chi tháng này"
@@ -136,17 +179,21 @@ export function DashboardPage() {
 
       <div className="dashboard-grid">
         <section className="panel">
-          <h2>Phân bổ chi tiêu theo danh mục</h2>
+          <div className="panel-header">
+            <h2>Phân bổ chi tiêu theo danh mục</h2>
+          </div>
           <div className="chart-wrapper">
             {doughnutData ? (
               <Doughnut data={doughnutData} options={{ plugins: { legend: { position: "bottom" } } }} />
             ) : (
-              "Chưa có dữ liệu"
+              <p className="empty-state">Chưa có dữ liệu.</p>
             )}
           </div>
         </section>
         <section className="panel">
-          <h2>Dòng tiền gần đây</h2>
+          <div className="panel-header">
+            <h2>Dòng tiền gần đây</h2>
+          </div>
           <div className="chart-wrapper">
             {lineData ? (
               <Line
@@ -157,7 +204,7 @@ export function DashboardPage() {
                 }}
               />
             ) : (
-              "Chưa có dữ liệu"
+              <p className="empty-state">Chưa có dữ liệu.</p>
             )}
           </div>
         </section>
@@ -165,7 +212,9 @@ export function DashboardPage() {
 
       <div className="dashboard-grid">
         <section className="panel">
-          <h2>Ngân sách</h2>
+          <div className="panel-header">
+            <h2>Ngân sách</h2>
+          </div>
           {budgetsLoading ? (
             <p>Đang tải ngân sách...</p>
           ) : budgets && budgets.length > 0 ? (
@@ -177,13 +226,13 @@ export function DashboardPage() {
                     <div className="budget-header">
                       <div>
                         <strong>{budget.budget.category?.name ?? "Tất cả danh mục"}</strong>
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                        <div className="budget-subtitle">
                           Tháng {budget.budget.month}/{budget.budget.year}
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
+                      <div className="budget-amounts">
                         <span>{formatCurrency(budget.spent, budget.budget.currency)}</span>
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                        <div className="budget-subtitle">
                           / {formatCurrency(budget.budget.limitAmount, budget.budget.currency)}
                         </div>
                       </div>
@@ -201,7 +250,9 @@ export function DashboardPage() {
         </section>
 
         <section className="panel">
-          <h2>Giao dịch gần đây</h2>
+          <div className="panel-header">
+            <h2>Giao dịch gần đây</h2>
+          </div>
           {overviewLoading || !overview ? (
             <p>Đang tải...</p>
           ) : overview.recent.length === 0 ? (

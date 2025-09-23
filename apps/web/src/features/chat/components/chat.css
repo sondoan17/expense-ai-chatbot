@@ -212,3 +212,31 @@
   background: currentColor;
 }
 
+.chat-composer textarea {
+  width: 100%;
+  min-height: 64px;
+  max-height: 200px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  padding-right: 0.75rem;
+}
+
+.chat-composer textarea:disabled {
+  opacity: 0.65;
+}
+
+.chat-messages .empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.chat-composer button svg {
+  transition: transform 0.2s ease;
+}
+
+.chat-composer button:hover:enabled svg {
+  transform: translateX(2px);
+}
+

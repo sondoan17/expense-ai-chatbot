@@ -2,6 +2,7 @@
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider, RequireAuth } from './hooks/useAuth';
 import { LoginPage } from './features/auth/LoginPage';
+import { RegisterPage } from './features/auth/RegisterPage';
 import { ChatPage } from './features/chat/ChatPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { AppLayout } from './components/AppLayout';
@@ -14,6 +15,7 @@ export function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route
               path="/app"
               element={
