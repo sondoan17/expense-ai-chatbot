@@ -28,46 +28,10 @@ const DEFAULT_LANGUAGE: AgentLanguage = 'vi';
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
-  private readonly systemPromptTemplate = `You are an expense management intent parser for a personal finance chatbot. Your job is to convert a single user message into a structured JSON payload that strictly matches this schema and rules.
+  private readonly systemPromptTemplate = `You are an expense intent parser. CURRENT_TIME={{NOW_ISO}} TIMEZONE={{TIMEZONE}}. Return one JSON object with keys:
+{"intent":"add_expense|add_income|query_total|query_by_category|set_budget|get_budget_status|list_recent|undo_or_delete|small_talk","language":"vi|en","amount":number?,"currency":"VND|USD"?,"category":string?,"note":string?,"occurred_at":string?,"period":"today|yesterday|this_week|this_month|last_month|this_year"?,"date_from":string?,"date_to":string?,"budget_month":number?,"budget_year":number?,"confidence":number?}
+Rules: JSON only, no code fences or prose. Detect language; default vi when Vietnamese markers (k,tr,nghin,trieu). Interpret shorthand (k,tr,nghin,trieu) as numeric VND; currency defaults VND if unclear. Use CURRENT_TIME/TIMEZONE for relative dates. Map categories to: An uong, Di chuyen, Nha o, Mua sam, Giai tri, Suc khoe, Giao duc, Hoa don, Thu nhap, Khac. Pick intent per definitions; use small_talk for casual chat.`
 
-CURRENT_TIME: {{NOW_ISO}}
-TIMEZONE: {{TIMEZONE}}
-
-### Output Contract (JSON only)
-Return a single JSON object with these fields. Do not add other fields. Do not wrap with code fences.
-{
-  "intent": "add_expense | add_income | query_total | query_by_category | set_budget | get_budget_status | list_recent | undo_or_delete | small_talk",
-  "language": "vi | en",
-  "amount": number?,
-  "currency": "VND | USD"?,
-  "category": string?,
-  "note": string?,
-  "occurred_at": string?,
-  "period": "today | yesterday | this_week | this_month | last_month | this_year"?,
-  "date_from": string?,
-  "date_to": string?,
-  "budget_month": number?,
-  "budget_year": number?,
-  "confidence": number?
-}
-
-### General Rules
-1) Language: detect and mirror the user's language. Default to "vi" when Vietnamese markers exist.
-2) JSON only: output one JSON object with the exact keys above.
-3) Currency & amount normalization: interpret Vietnamese shorthand (k, tr, nghin, trieu) to numeric VND. If ambiguous default to VND.
-4) Date parsing: respect CURRENT_TIME & TIMEZONE. Support relative phrases (today, this month, last month, this year...). Prefer explicit dates if provided.
-5) Category mapping: normalise to canonical Vietnamese category names (An uong, Di chuyen, Nha o, Mua sam, Giai tri, Suc khoe, Giao duc, Hoa don, Thu nhap, Khac).
-6) Intent selection:
-   - add_expense: user spent money
-   - add_income: user received money
-   - query_total: ask for totals in a time range (any category)
-   - query_by_category: ask for totals filtered by category
-   - set_budget: request to set monthly budget (requires amount + month/year)
-   - get_budget_status: ask remaining/used budget
-   - list_recent: ask to list recent transactions
-   - undo_or_delete: ask to undo/delete last or specific transaction
-   - small_talk: general chit-chat (no DB change)
-`;
 
   constructor(
     private readonly hyperbolicService: HyperbolicService,
@@ -104,6 +68,7 @@ Return a single JSON object with these fields. Do not add other fields. Do not w
         max_tokens: 350,
         temperature: 0.1,
         top_p: 0.8,
+        response_format: { type: 'json_object' },
       });
 
       this.logRawCompletion(raw);
@@ -478,19 +443,113 @@ Return a single JSON object with these fields. Do not add other fields. Do not w
     this.logger.debug(`Hyperbolic raw response preview: ${preview}`);
   }
   private parseAgentPayload(raw: string): AgentPayload {
+    const jsonString = this.extractJsonString(raw);
+
     try {
-      return AgentPayloadSchema.parse(JSON.parse(raw));
+      const parsed = JSON.parse(jsonString);
+      return AgentPayloadSchema.parse(this.normalizeAgentPayload(parsed));
     } catch (error) {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
+      const fallback = this.findJsonObject(raw);
+      if (fallback) {
         try {
-          return AgentPayloadSchema.parse(JSON.parse(jsonMatch[0]));
+          const parsedFallback = JSON.parse(fallback);
+          return AgentPayloadSchema.parse(this.normalizeAgentPayload(parsedFallback));
         } catch (innerError) {
           this.logger.warn('Failed to parse JSON snippet from LLM response', innerError);
         }
       }
       throw error;
     }
+  }
+
+  private extractJsonString(raw: string): string {
+    const withoutThinking = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    const channelRegex = /<\|channel\|>([a-zA-Z0-9_]+)<\|message\|>([\s\S]*?)(?=(<\|channel\|>[a-zA-Z0-9_]+<\|message\|>)|$)/g;
+
+    let finalContent: string | undefined;
+    let fallbackContent: string | undefined;
+
+    for (const match of withoutThinking.matchAll(channelRegex)) {
+      const channel = match[1];
+      const content = match[2].trim();
+
+      if (channel === 'final') {
+        finalContent = content;
+        break;
+      }
+
+      if (!fallbackContent) {
+        const candidate = this.findJsonObject(content);
+        if (candidate) {
+          fallbackContent = candidate;
+        }
+      }
+    }
+
+    const target = finalContent ?? fallbackContent ?? withoutThinking;
+    const json = this.findJsonObject(target);
+
+    if (!json) {
+      throw new Error('No JSON object found in LLM response');
+    }
+
+    return json;
+  }
+
+  private findJsonObject(text: string): string | undefined {
+    const match = text.match(/\{[\s\S]*\}/);
+    return match ? match[0] : undefined;
+  }
+
+  private normalizeAgentPayload(payload: unknown): unknown {
+    if (!payload || typeof payload !== 'object') {
+      return payload;
+    }
+
+    const clone: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+    const occurredAt = clone.occurred_at;
+
+    if (typeof occurredAt === 'string' && occurredAt.trim().length > 0) {
+      const parsed = DateTime.fromISO(occurredAt, { setZone: true });
+      if (parsed.isValid) {
+        clone.occurred_at = parsed.toUTC().toISO();
+      } else {
+        const parsedUTC = DateTime.fromISO(occurredAt);
+        if (parsedUTC.isValid) {
+          clone.occurred_at = parsedUTC.toUTC().toISO();
+        }
+      }
+    }
+
+    const rawBudgetMonth = clone.budget_month;
+    if (typeof rawBudgetMonth === 'string' && rawBudgetMonth.trim().length > 0) {
+      const numericMonth = Number(rawBudgetMonth);
+      clone.budget_month = Number.isFinite(numericMonth) ? numericMonth : rawBudgetMonth;
+    }
+
+    if (typeof clone.budget_month === 'number') {
+      if (clone.budget_month < 1 || clone.budget_month > 12) {
+        delete clone.budget_month;
+      } else {
+        clone.budget_month = Math.trunc(clone.budget_month);
+      }
+    }
+
+    const rawBudgetYear = clone.budget_year;
+    if (typeof rawBudgetYear === 'string' && rawBudgetYear.trim().length > 0) {
+      const numericYear = Number(rawBudgetYear);
+      clone.budget_year = Number.isFinite(numericYear) ? numericYear : rawBudgetYear;
+    }
+
+    if (typeof clone.budget_year === 'number') {
+      if (clone.budget_year < 1900 || clone.budget_year > 3000) {
+        delete clone.budget_year;
+      } else {
+        clone.budget_year = Math.trunc(clone.budget_year);
+      }
+    }
+
+    return clone;
   }
 
   private detectSummaryType(intent: Intent, categoryName: string | null): TxnType | undefined {
