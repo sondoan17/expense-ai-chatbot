@@ -7,6 +7,7 @@ import { TransactionsModule } from "./transactions/transactions.module";
 import { BudgetsModule } from "./budgets/budgets.module";
 import { ReportsModule } from "./reports/reports.module";
 import { AgentModule } from "./agent/agent.module";
+import { RecurringTransactionsModule } from "./recurring-transactions/recurring-transactions.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AgentModule } from "./agent/agent.module";
     BudgetsModule,
     ReportsModule,
     AgentModule,
+    RecurringTransactionsModule,
   ],
 })
 export class AppModule {}

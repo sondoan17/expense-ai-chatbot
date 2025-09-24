@@ -7,8 +7,7 @@ import { CreateTransactionDto } from "./dto/create-transaction.dto";
 import { ListTransactionsQueryDto } from "./dto/list-transactions-query.dto";
 import { TransactionSummaryQueryDto } from "./dto/transaction-summary-query.dto";
 import { resolveDateRange } from "../common/utils/date-range.util";
-
-const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
+import { DEFAULT_TIMEZONE } from "../common/constants/timezone.constants";
 
 type TransactionWithCategory = Prisma.TransactionGetPayload<{
   include: { category: true };
@@ -21,7 +20,11 @@ export class TransactionsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(userId: string, dto: CreateTransactionDto) {
+  async create(
+    userId: string,
+    dto: CreateTransactionDto,
+    options?: { scheduledFor?: Date; recurringTransactionId?: string },
+  ) {
     const timezone = this.getTimezone();
     const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : this.now(timezone);
 
@@ -35,6 +38,8 @@ export class TransactionsService {
         occurredAt,
         categoryId: dto.categoryId,
         meta: dto.meta !== undefined ? (dto.meta as Prisma.InputJsonValue) : undefined,
+        scheduledFor: options?.scheduledFor ?? (options?.recurringTransactionId ? occurredAt : undefined),
+        recurringTransactionId: options?.recurringTransactionId,
       },
       include: { category: true },
     });
@@ -208,6 +213,8 @@ export class TransactionsService {
         ? { id: transaction.category.id, name: transaction.category.name }
         : null,
       meta: transaction.meta,
+      recurringTransactionId: transaction.recurringTransactionId,
+      scheduledFor: transaction.scheduledFor?.toISOString() ?? null,
       createdAt: transaction.createdAt.toISOString(),
       updatedAt: transaction.updatedAt.toISOString(),
     };

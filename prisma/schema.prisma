@@ -18,6 +18,12 @@ enum TxnType {
   INCOME
 }
 
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 enum ChatRole {
   USER
   ASSISTANT
@@ -38,6 +44,7 @@ model User {
   transactions  Transaction[]
   budgets       Budget[]
   chatMessages  ChatMessage[]
+  recurringTransactions RecurringTransaction[]
 }
 
 model Category {
@@ -48,6 +55,7 @@ model Category {
   updatedAt DateTime      @updatedAt
   txns      Transaction[]
   budgets   Budget[]
+  recurringTransactions RecurringTransaction[]
 }
 
 model Transaction {
@@ -62,11 +70,16 @@ model Transaction {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
   meta       Json?
+  recurringTransactionId String?
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id])
+  scheduledFor           DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
   @@index([userId, occurredAt])
   @@index([categoryId])
+  @@index([recurringTransactionId])
+  @@unique([recurringTransactionId, scheduledFor])
 }
 
 model Budget {
@@ -95,4 +108,31 @@ model ChatMessage {
   createdAt DateTime           @default(now())
 
   @@index([userId, createdAt])
+}
+
+model RecurringTransaction {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  type        TxnType
+  amount      Decimal   @db.Decimal(18, 2)
+  currency    Currency  @default(VND)
+  note        String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  frequency   RecurringFrequency
+  interval    Int       @default(1)
+  dayOfMonth  Int?
+  weekday     Int?
+  startDate   DateTime
+  endDate     DateTime?
+  timezone    String
+  nextRunAt   DateTime?
+  lastRunAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  transactions Transaction[]
+
+  @@index([userId, isActive, nextRunAt])
 }
