@@ -15,6 +15,14 @@ const DEFAULT_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const DEFAULT_TIME_OF_DAY = '07:00';
 const MAX_ITERATIONS = 500;
 
+const recurringRuleInclude = Prisma.validator<Prisma.RecurringRuleInclude>()({
+  category: true,
+});
+
+type RecurringRuleWithCategory = Prisma.RecurringRuleGetPayload<{
+  include: typeof recurringRuleInclude;
+}>;
+
 export interface CreateRecurringRuleInput {
   freq: RecurringFreq;
   dayOfMonth?: number | null;
@@ -45,7 +53,7 @@ interface NormalizedRuleContext {
 export class RecurringService {
   private readonly logger = new Logger(RecurringService.name);
 
-  private readonly ruleInclude = { category: true } as const;
+  private readonly ruleInclude = recurringRuleInclude;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,7 +63,7 @@ export class RecurringService {
   async createRule(
     userId: string,
     input: CreateRecurringRuleInput,
-  ): Promise<Prisma.RecurringRuleGetPayload<{ include: typeof this.ruleInclude }>> {
+  ): Promise<RecurringRuleWithCategory> {
     const timezone = this.normalizeTimezone(input.timezone);
     const timeOfDay = this.normalizeTimeOfDay(input.timeOfDay);
 
@@ -338,7 +346,8 @@ export class RecurringService {
           .set({ month: baseMonth })
           .startOf('month')
           .set({ hour: context.hour, minute: context.minute, second: 0, millisecond: 0 });
-        const day = Math.min(baseDay, anchor.daysInMonth);
+        const anchorDaysInMonth = anchor.daysInMonth ?? 31;
+        const day = Math.min(baseDay, anchorDaysInMonth);
         return anchor.set({ day });
       }
       default:
@@ -378,7 +387,8 @@ export class RecurringService {
   ): number {
     const base = typeof dayOfMonth === 'number' ? dayOfMonth : fallbackDay;
     const target = Math.min(Math.max(base, 1), 31);
-    return Math.min(target, reference.daysInMonth);
+    const daysInMonth = reference.daysInMonth ?? 31;
+    return Math.min(target, daysInMonth);
   }
 
   private async disableRule(ruleId: string, message: string) {

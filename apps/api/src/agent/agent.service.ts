@@ -641,7 +641,8 @@ export class AgentService {
       weekday: rule.weekday,
       nextRun,
     });
-    const nextRunLabel = formatDate(nextRun.toISO(), rule.timezone);
+    const nextRunIso = nextRun.toISO() ?? nextRun.toISODate() ?? nextRun.toFormat('yyyy-MM-dd');
+    const nextRunLabel = formatDate(nextRunIso, rule.timezone);
 
     return {
       reply: buildRecurringRuleCreatedReply(language, {
