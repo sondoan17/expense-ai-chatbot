@@ -307,11 +307,11 @@ function detectOccurredAt(
   const explicit = parseExplicitDate(original, timezone, reference);
 
   if (explicit) {
-    return explicit.toUTC().toISO();
+    return toIsoString(explicit);
   }
 
   if (normalized.includes('hom kia')) {
-    return reference.minus({ days: 2 }).toUTC().toISO();
+    return toIsoString(reference.minus({ days: 2 }));
   }
 
   if (
@@ -321,18 +321,18 @@ function detectOccurredAt(
     normalized.includes('sang qua') ||
     normalized.includes('yesterday')
   ) {
-    return reference.minus({ days: 1 }).toUTC().toISO();
+    return toIsoString(reference.minus({ days: 1 }));
   }
 
   if (normalized.includes('tuan truoc') || normalized.includes('last week')) {
-    return reference.minus({ weeks: 1 }).toUTC().toISO();
+    return toIsoString(reference.minus({ weeks: 1 }));
   }
 
   if (normalized.includes('thang truoc') || normalized.includes('last month')) {
-    return reference.minus({ months: 1 }).toUTC().toISO();
+    return toIsoString(reference.minus({ months: 1 }));
   }
 
-  return reference.toUTC().toISO();
+  return toIsoString(reference);
 }
 
 function parseExplicitDate(
@@ -345,7 +345,7 @@ function parseExplicitDate(
     const year = Number(isoMatch[1]);
     const month = Number(isoMatch[2]);
     const day = Number(isoMatch[3]);
-    const dt = DateTime.fromObject({ year, month, day, zone: timezone });
+    const dt = DateTime.fromObject({ year, month, day }, { zone: timezone });
     return dt.isValid ? dt : null;
   }
 
@@ -359,7 +359,7 @@ function parseExplicitDate(
       year += year >= 70 ? 1900 : 2000;
     }
 
-    let candidate = DateTime.fromObject({ day, month, year, zone: timezone });
+    let candidate = DateTime.fromObject({ day, month, year }, { zone: timezone });
     if (!candidate.isValid) {
       return null;
     }
@@ -376,4 +376,9 @@ function parseExplicitDate(
 
 function roundToTwoDecimals(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function toIsoString(date: DateTime): string {
+  const iso = date.toUTC().toISO();
+  return iso ?? date.toUTC().toString();
 }
