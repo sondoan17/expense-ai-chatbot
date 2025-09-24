@@ -7,9 +7,10 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { BudgetsModule } from '../budgets/budgets.module';
 import { ReportsModule } from '../reports/reports.module';
 import { UsersModule } from '../users/users.module';
+import { RecurringModule } from '../recurring/recurring.module';
 
 @Module({
-  imports: [ConfigModule, TransactionsModule, BudgetsModule, ReportsModule, UsersModule],
+  imports: [ConfigModule, TransactionsModule, BudgetsModule, ReportsModule, UsersModule, RecurringModule],
   controllers: [AgentController],
   providers: [AgentService, HyperbolicService],
 })

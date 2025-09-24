@@ -18,6 +18,13 @@ enum TxnType {
   INCOME
 }
 
+enum RecurringFreq {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum ChatRole {
   USER
   ASSISTANT
@@ -48,6 +55,7 @@ model Category {
   updatedAt DateTime      @updatedAt
   txns      Transaction[]
   budgets   Budget[]
+  recurringRules RecurringRule[]
 }
 
 model Transaction {
@@ -67,6 +75,46 @@ model Transaction {
 
   @@index([userId, occurredAt])
   @@index([categoryId])
+}
+
+model RecurringRule {
+  id            String        @id @default(cuid())
+  userId        String
+  enabled       Boolean       @default(true)
+  freq          RecurringFreq
+  dayOfMonth    Int?
+  weekday       Int?
+  timeOfDay     String
+  timezone      String
+  startDate     DateTime
+  endDate       DateTime?
+  type          TxnType
+  amount        Decimal       @db.Decimal(18, 2)
+  currency      Currency      @default(VND)
+  categoryId    String?
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  note          String?
+  nextRunAt     DateTime
+  lastRunAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  runLogs       RecurringRunLog[]
+
+  @@index([userId, enabled, nextRunAt])
+  @@index([categoryId])
+}
+
+model RecurringRunLog {
+  id              String   @id @default(cuid())
+  recurringRuleId String
+  recurringRule   RecurringRule @relation(fields: [recurringRuleId], references: [id])
+  occurredDate    DateTime
+  txnId           String?
+  status          String
+  message         String?
+  createdAt       DateTime @default(now())
+
+  @@unique([recurringRuleId, occurredDate])
 }
 
 model Budget {

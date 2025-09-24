@@ -115,5 +115,70 @@ function normalizeAgentPayload(payload: unknown): unknown {
     }
   }
 
+  const recurringStart = clone.recurring_start_date;
+  if (typeof recurringStart === 'string' && recurringStart.trim().length > 0) {
+    const parsed = DateTime.fromISO(recurringStart, { setZone: true });
+    if (parsed.isValid) {
+      clone.recurring_start_date = parsed.toUTC().toISO();
+    }
+  }
+
+  const recurringEnd = clone.recurring_end_date;
+  if (typeof recurringEnd === 'string' && recurringEnd.trim().length > 0) {
+    const parsed = DateTime.fromISO(recurringEnd, { setZone: true });
+    if (parsed.isValid) {
+      clone.recurring_end_date = parsed.toUTC().toISO();
+    }
+  }
+
+  const rawRecurringWeekday = clone.recurring_weekday;
+  if (typeof rawRecurringWeekday === 'string' && rawRecurringWeekday.trim().length > 0) {
+    const numericWeekday = Number(rawRecurringWeekday);
+    clone.recurring_weekday = Number.isFinite(numericWeekday) ? numericWeekday : rawRecurringWeekday;
+  }
+
+  if (typeof clone.recurring_weekday === 'number') {
+    if (clone.recurring_weekday < 0 || clone.recurring_weekday > 6) {
+      delete clone.recurring_weekday;
+    } else {
+      clone.recurring_weekday = Math.trunc(clone.recurring_weekday);
+    }
+  }
+
+  const rawRecurringDay = clone.recurring_day_of_month;
+  if (typeof rawRecurringDay === 'string' && rawRecurringDay.trim().length > 0) {
+    const numericDay = Number(rawRecurringDay);
+    clone.recurring_day_of_month = Number.isFinite(numericDay) ? numericDay : rawRecurringDay;
+  }
+
+  if (typeof clone.recurring_day_of_month === 'number') {
+    if (clone.recurring_day_of_month < 1 || clone.recurring_day_of_month > 31) {
+      delete clone.recurring_day_of_month;
+    } else {
+      clone.recurring_day_of_month = Math.trunc(clone.recurring_day_of_month);
+    }
+  }
+
+  const rawTimeOfDay = clone.recurring_time_of_day;
+  if (typeof rawTimeOfDay === 'string' && rawTimeOfDay.trim().length > 0) {
+    const normalized = normalizeTimeOfDay(rawTimeOfDay);
+    if (normalized) {
+      clone.recurring_time_of_day = normalized;
+    }
+  }
+
   return clone;
+}
+
+function normalizeTimeOfDay(value: string): string | undefined {
+  const sanitized = value.trim().toLowerCase().replace(/\s+/g, '');
+  const match = sanitized.match(/^(\d{1,2})(?::|h)?(\d{1,2})?$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const hour = Math.min(Math.max(Number(match[1]), 0), 23);
+  const minute = match[2] ? Math.min(Math.max(Number(match[2]), 0), 59) : 0;
+
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }
