@@ -9,7 +9,7 @@ import { TransactionSummaryQueryDto } from '../transactions/dto/transaction-summ
 import { ListTransactionsQueryDto } from '../transactions/dto/list-transactions-query.dto';
 import { PublicUser } from '../users/types/public-user.type';
 import { AgentChatResult } from './types/agent-response.type';
-import { ChatMessageStatus, ChatRole, Currency, Prisma, TxnType } from '@prisma/client';
+import { ChatMessageStatus, ChatRole, Currency, Prisma, RecurringFreq, TxnType } from '@prisma/client';
 import { DateTime } from 'luxon';
 
 import {
@@ -36,9 +36,11 @@ import {
   buildSummaryByCategoryReply,
   buildSummaryTotalsReply,
   buildTransactionSavedReply,
+  buildRecurringRuleCreatedReply,
   buildUndoNotSupportedReply,
   buildUnsupportedIntentReply,
   describeRange,
+  describeRecurringSchedule,
   formatCurrency,
   formatDate,
   formatMonthYear,
@@ -49,6 +51,7 @@ import {
 import { buildClassificationPrompt } from './utils/classification.util';
 import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import type { TransactionResult } from './types/internal.types';
+import { RecurringService } from '../recurring/recurring.service';
 
 @Injectable()
 export class AgentService {
@@ -59,6 +62,7 @@ export class AgentService {
     private readonly hyperbolicService: HyperbolicService,
     private readonly transactionsService: TransactionsService,
     private readonly budgetsService: BudgetsService,
+    private readonly recurringService: RecurringService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {}
@@ -144,6 +148,9 @@ export class AgentService {
             intent: 'clarify',
             parsed: payload,
           };
+          break;
+        case 'set_recurring':
+          result = await this.handleSetRecurring(user, trimmed, payload, timezone, language);
           break;
         case 'small_talk':
           result = this.handleSmallTalk(user, payload, language);
@@ -536,6 +543,120 @@ export class AgentService {
       intent: payload.intent,
       parsed: payload,
       data: { transactions: result },
+    };
+  }
+
+  private async handleSetRecurring(
+    user: PublicUser,
+    originalMessage: string,
+    payload: AgentPayload,
+    defaultTimezone: string,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    if (!payload.amount || payload.amount <= 0) {
+      return {
+        reply: buildMissingAmountReply(language),
+        intent: 'clarify',
+        parsed: payload,
+      };
+    }
+
+    const freq: RecurringFreq = payload.recurring_freq
+      ? (payload.recurring_freq as RecurringFreq)
+      : RecurringFreq.MONTHLY;
+
+    const timezone = payload.recurring_timezone?.trim() || defaultTimezone || DEFAULT_TIMEZONE;
+    let startDateTime = payload.recurring_start_date
+      ? DateTime.fromISO(payload.recurring_start_date, { zone: timezone })
+      : DateTime.now().setZone(timezone);
+    if (!startDateTime.isValid) {
+      startDateTime = DateTime.now().setZone(timezone);
+    }
+
+    let endDateTime: DateTime | undefined;
+    if (payload.recurring_end_date) {
+      const parsedEnd = DateTime.fromISO(payload.recurring_end_date, { zone: timezone });
+      if (parsedEnd.isValid) {
+        endDateTime = parsedEnd;
+      }
+    }
+
+    const timeOfDay = payload.recurring_time_of_day ?? '07:00';
+
+    const categoryName = payload.category ? this.resolveCategory(payload.category) : null;
+    const category = categoryName ? await this.findCategoryByName(categoryName) : null;
+
+    let txnType: TxnType;
+    if (payload.recurring_txn_type === 'INCOME') {
+      txnType = TxnType.INCOME;
+    } else if (payload.recurring_txn_type === 'EXPENSE') {
+      txnType = TxnType.EXPENSE;
+    } else {
+      txnType = categoryName === 'Thu nhập' ? TxnType.INCOME : TxnType.EXPENSE;
+    }
+
+    let weekday: number | undefined;
+    if (freq === RecurringFreq.WEEKLY) {
+      if (typeof payload.recurring_weekday === 'number') {
+        weekday = payload.recurring_weekday;
+      } else {
+        const luxonWeekday = startDateTime.weekday; // 1 (Mon) .. 7 (Sun)
+        weekday = luxonWeekday === 7 ? 0 : luxonWeekday;
+      }
+    }
+
+    let dayOfMonth: number | undefined;
+    if (freq === RecurringFreq.MONTHLY) {
+      if (typeof payload.recurring_day_of_month === 'number') {
+        dayOfMonth = payload.recurring_day_of_month;
+      } else {
+        dayOfMonth = startDateTime.day;
+      }
+    }
+
+    const currency: Currency = payload.currency === 'USD' ? Currency.USD : Currency.VND;
+    const note = payload.note?.trim()?.length ? payload.note : originalMessage;
+
+    const rule = await this.recurringService.createRule(user.id, {
+      freq,
+      dayOfMonth,
+      weekday,
+      timeOfDay,
+      timezone,
+      startDate: startDateTime.toJSDate(),
+      endDate: endDateTime?.toJSDate(),
+      type: txnType,
+      amount: payload.amount,
+      currency,
+      categoryId: category?.id,
+      note,
+    });
+
+    const nextRun = DateTime.fromJSDate(rule.nextRunAt).setZone(rule.timezone);
+    const amountLabel = formatCurrency(rule.amount.toNumber(), rule.currency, language);
+    const categoryLabel = rule.category?.name ?? categoryName ?? null;
+    const scheduleLabel = describeRecurringSchedule(language, {
+      freq: rule.freq,
+      dayOfMonth: rule.dayOfMonth,
+      weekday: rule.weekday,
+      nextRun,
+    });
+    const nextRunLabel = formatDate(nextRun.toISO(), rule.timezone);
+
+    return {
+      reply: buildRecurringRuleCreatedReply(language, {
+        type: rule.type,
+        amountLabel,
+        categoryLabel,
+        scheduleLabel,
+        timeLabel: rule.timeOfDay,
+        timezone: rule.timezone,
+        nextRunLabel,
+      }),
+      intent: payload.intent,
+      parsed: payload,
+      data: { rule },
+      meta: { nextRunAt: rule.nextRunAt },
     };
   }
 

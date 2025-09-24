@@ -18,6 +18,9 @@ export type Currency = (typeof CURRENCY_VALUES)[number];
 export const TXN_TYPE_VALUES = ["EXPENSE", "INCOME"] as const;
 export type TxnType = (typeof TXN_TYPE_VALUES)[number];
 
+export const RECURRING_FREQ_VALUES = ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] as const;
+export type RecurringFreq = (typeof RECURRING_FREQ_VALUES)[number];
+
 export const CANONICAL_CATEGORIES = [
   "Ăn uống",
   "Di chuyển",
@@ -139,6 +142,7 @@ export const IntentSchema = z.enum([
   "list_recent",
   "undo_or_delete",
   "small_talk",
+  "set_recurring",
 ]);
 
 export const AgentPayloadSchema = z.object({
@@ -155,6 +159,14 @@ export const AgentPayloadSchema = z.object({
   budget_month: z.number().int().min(1).max(12).optional(),
   budget_year: z.number().int().optional(),
   confidence: z.number().min(0).max(1).optional(),
+  recurring_freq: z.enum(RECURRING_FREQ_VALUES).optional(),
+  recurring_day_of_month: z.number().int().min(1).max(31).optional(),
+  recurring_weekday: z.number().int().min(0).max(6).optional(),
+  recurring_time_of_day: z.string().optional(),
+  recurring_timezone: z.string().optional(),
+  recurring_start_date: z.string().datetime().optional(),
+  recurring_end_date: z.string().datetime().optional(),
+  recurring_txn_type: z.enum(TXN_TYPE_VALUES).optional(),
 });
 
 export type Intent = z.infer<typeof IntentSchema>;
