@@ -4,8 +4,11 @@
   "version": "0.1.0",
   "type": "commonjs",
   "scripts": {
+    "predev": "prisma generate --schema ../../prisma/schema.prisma",
     "dev": "nest start --watch --entryFile apps/api/src/main",
+    "prestart": "prisma generate --schema ../../prisma/schema.prisma",
     "start": "nest start --entryFile apps/api/src/main",
+    "prebuild": "prisma generate --schema ../../prisma/schema.prisma",
     "build": "nest build",
     "lint": "eslint src --ext .ts --max-warnings=0",
     "test": "echo \"TODO: add backend tests\""
