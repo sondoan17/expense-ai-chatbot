@@ -23,6 +23,19 @@ type RecurringRuleWithCategory = Prisma.RecurringRuleGetPayload<{
   include: typeof recurringRuleInclude;
 }>;
 
+type RecurringRuleMutationResult = {
+  rule: RecurringRuleWithCategory;
+  action: 'created' | 'updated';
+};
+
+interface ExistingRuleCriteria {
+  type: TxnType;
+  categoryId: string | null;
+  currency: Currency;
+  note?: string | null;
+  amount: Prisma.Decimal;
+}
+
 export interface CreateRecurringRuleInput {
   freq: RecurringFreq;
   dayOfMonth?: number | null;
@@ -63,60 +76,35 @@ export class RecurringService {
   async createRule(
     userId: string,
     input: CreateRecurringRuleInput,
-  ): Promise<RecurringRuleWithCategory> {
-    const timezone = this.normalizeTimezone(input.timezone);
-    const timeOfDay = this.normalizeTimeOfDay(input.timeOfDay);
+  ): Promise<RecurringRuleMutationResult> {
+    const prepared = this.prepareRuleData(input);
+    const existing = await this.findExistingRule(userId, {
+      type: input.type,
+      categoryId: prepared.categoryId,
+      currency: prepared.currency,
+      note: prepared.note,
+      amount: prepared.amount,
+    });
 
-    const start = DateTime.fromJSDate(input.startDate)
-      .setZone(timezone)
-      .startOf('day')
-      .set({ hour: timeOfDay.hour, minute: timeOfDay.minute, second: 0, millisecond: 0 });
+    if (existing) {
+      const updated = await this.prisma.recurringRule.update({
+        where: { id: existing.id },
+        data: prepared.sharedData,
+        include: this.ruleInclude,
+      });
 
-    const end = input.endDate
-      ? DateTime.fromJSDate(input.endDate)
-          .setZone(timezone)
-          .endOf('day')
-      : undefined;
-
-    const context: NormalizedRuleContext = {
-      freq: input.freq,
-      dayOfMonth: input.dayOfMonth ?? null,
-      weekday: input.weekday ?? null,
-      hour: timeOfDay.hour,
-      minute: timeOfDay.minute,
-      timezone,
-      start,
-      end,
-    };
-
-    const nextRun = this.calculateNextRun(context, DateTime.now().setZone(timezone));
-
-    if (!nextRun) {
-      throw new Error('Unable to determine next run time for recurring rule');
+      return { rule: updated, action: 'updated' };
     }
 
-    const rule = await this.prisma.recurringRule.create({
+    const created = await this.prisma.recurringRule.create({
       data: {
         userId,
-        enabled: true,
-        freq: input.freq,
-        dayOfMonth: input.dayOfMonth ?? null,
-        weekday: input.weekday ?? null,
-        timeOfDay: this.formatTimeOfDay(timeOfDay.hour, timeOfDay.minute),
-        timezone,
-        startDate: start.toUTC().toJSDate(),
-        endDate: end ? end.toUTC().toJSDate() : null,
-        type: input.type,
-        amount: new Prisma.Decimal(input.amount),
-        currency: input.currency ?? Currency.VND,
-        categoryId: input.categoryId ?? null,
-        note: input.note ?? null,
-        nextRunAt: nextRun.toUTC().toJSDate(),
+        ...prepared.sharedData,
       },
       include: this.ruleInclude,
     });
 
-    return rule;
+    return { rule: created, action: 'created' };
   }
 
   async processDueRules(limit = 50): Promise<void> {
@@ -259,6 +247,108 @@ export class RecurringService {
       return this.parseTimeOfDay(input);
     }
     return this.parseTimeOfDay(DEFAULT_TIME_OF_DAY);
+  }
+
+  private prepareRuleData(input: CreateRecurringRuleInput) {
+    const timezone = this.normalizeTimezone(input.timezone);
+    const timeOfDay = this.normalizeTimeOfDay(input.timeOfDay);
+
+    const start = DateTime.fromJSDate(input.startDate)
+      .setZone(timezone)
+      .startOf('day')
+      .set({ hour: timeOfDay.hour, minute: timeOfDay.minute, second: 0, millisecond: 0 });
+
+    const end = input.endDate
+      ? DateTime.fromJSDate(input.endDate)
+          .setZone(timezone)
+          .endOf('day')
+      : undefined;
+
+    const context: NormalizedRuleContext = {
+      freq: input.freq,
+      dayOfMonth: input.dayOfMonth ?? null,
+      weekday: input.weekday ?? null,
+      hour: timeOfDay.hour,
+      minute: timeOfDay.minute,
+      timezone,
+      start,
+      end,
+    };
+
+    const nextRun = this.calculateNextRun(context, DateTime.now().setZone(timezone));
+
+    if (!nextRun) {
+      throw new Error('Unable to determine next run time for recurring rule');
+    }
+
+    const amount = new Prisma.Decimal(input.amount);
+    const categoryId = input.categoryId ?? null;
+    const currency = input.currency ?? Currency.VND;
+    const note = input.note && input.note.trim().length > 0 ? input.note.trim() : null;
+
+    const sharedData = {
+      enabled: true,
+      freq: input.freq,
+      dayOfMonth: input.dayOfMonth ?? null,
+      weekday: input.weekday ?? null,
+      timeOfDay: this.formatTimeOfDay(timeOfDay.hour, timeOfDay.minute),
+      timezone,
+      startDate: start.toUTC().toJSDate(),
+      endDate: end ? end.toUTC().toJSDate() : null,
+      type: input.type,
+      amount,
+      currency,
+      categoryId,
+      note,
+      nextRunAt: nextRun.toUTC().toJSDate(),
+    } satisfies Prisma.RecurringRuleUncheckedUpdateInput;
+
+    return {
+      sharedData,
+      amount,
+      categoryId,
+      currency,
+      note,
+    };
+  }
+
+  private async findExistingRule(
+    userId: string,
+    criteria: ExistingRuleCriteria,
+  ): Promise<RecurringRuleWithCategory | null> {
+    const trimmedNote = criteria.note?.trim();
+
+    if (trimmedNote) {
+      const noteMatch = await this.prisma.recurringRule.findFirst({
+        where: {
+          userId,
+          type: criteria.type,
+          currency: criteria.currency,
+          categoryId: criteria.categoryId,
+          note: { equals: trimmedNote, mode: 'insensitive' },
+        },
+        orderBy: { updatedAt: 'desc' },
+        include: this.ruleInclude,
+      });
+
+      if (noteMatch) {
+        return noteMatch;
+      }
+    }
+
+    const amountMatch = await this.prisma.recurringRule.findFirst({
+      where: {
+        userId,
+        type: criteria.type,
+        currency: criteria.currency,
+        categoryId: criteria.categoryId,
+        amount: criteria.amount,
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: this.ruleInclude,
+    });
+
+    return amountMatch;
   }
 
   private parseTimeOfDay(value: string | null): { hour: number; minute: number } {

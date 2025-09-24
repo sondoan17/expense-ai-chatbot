@@ -252,6 +252,40 @@ export function buildRecurringRuleCreatedReply(
   return `I'll automatically record ${action}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
 }
 
+export function buildRecurringRuleUpdatedReply(
+  language: AgentLanguage,
+  params: {
+    type: TxnType;
+    amountLabel: string;
+    categoryLabel?: string | null;
+    scheduleLabel: string;
+    timeLabel: string;
+    timezone: string;
+    nextRunLabel: string;
+  },
+): string {
+  const { type, amountLabel, categoryLabel, scheduleLabel, timeLabel, timezone, nextRunLabel } = params;
+  const categoryClause = categoryLabel
+    ? language === 'vi'
+      ? ` cho ${categoryLabel}`
+      : ` for ${categoryLabel}`
+    : '';
+
+  const action = type === TxnType.INCOME
+    ? language === 'vi'
+      ? `khoản thu ${amountLabel}`
+      : `income of ${amountLabel}`
+    : language === 'vi'
+      ? `khoản chi ${amountLabel}`
+      : `an expense of ${amountLabel}`;
+
+  if (language === 'vi') {
+    return `Mình đã cập nhật lịch ghi ${action}${categoryClause} ${scheduleLabel} lúc ${timeLabel} (lần tiếp theo: ${nextRunLabel}, múi giờ ${timezone}).`;
+  }
+
+  return `I've updated the schedule to record ${action}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
+}
+
 export function buildAskBudgetAmountReply(language: AgentLanguage): string {
   return language === 'vi'
     ? 'Bạn muốn đặt ngân sách bao nhiêu? Mình cần số tiền cụ thể nhé.'

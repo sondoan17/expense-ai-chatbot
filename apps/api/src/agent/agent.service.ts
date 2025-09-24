@@ -37,6 +37,7 @@ import {
   buildSummaryTotalsReply,
   buildTransactionSavedReply,
   buildRecurringRuleCreatedReply,
+  buildRecurringRuleUpdatedReply,
   buildUndoNotSupportedReply,
   buildUnsupportedIntentReply,
   describeRange,
@@ -615,9 +616,9 @@ export class AgentService {
     }
 
     const currency: Currency = payload.currency === 'USD' ? Currency.USD : Currency.VND;
-    const note = payload.note?.trim()?.length ? payload.note : originalMessage;
+    const note = payload.note?.trim()?.length ? payload.note.trim() : originalMessage.trim();
 
-    const rule = await this.recurringService.createRule(user.id, {
+    const { rule, action } = await this.recurringService.createRule(user.id, {
       freq,
       dayOfMonth,
       weekday,
@@ -628,7 +629,7 @@ export class AgentService {
       type: txnType,
       amount: payload.amount,
       currency,
-      categoryId: category?.id,
+      categoryId: category?.id ?? null,
       note,
     });
 
@@ -644,8 +645,11 @@ export class AgentService {
     const nextRunIso = nextRun.toISO() ?? nextRun.toISODate() ?? nextRun.toFormat('yyyy-MM-dd');
     const nextRunLabel = formatDate(nextRunIso, rule.timezone);
 
+    const replyBuilder =
+      action === 'updated' ? buildRecurringRuleUpdatedReply : buildRecurringRuleCreatedReply;
+
     return {
-      reply: buildRecurringRuleCreatedReply(language, {
+      reply: replyBuilder(language, {
         type: rule.type,
         amountLabel,
         categoryLabel,
@@ -656,8 +660,8 @@ export class AgentService {
       }),
       intent: payload.intent,
       parsed: payload,
-      data: { rule },
-      meta: { nextRunAt: rule.nextRunAt },
+      data: { rule, action },
+      meta: { nextRunAt: rule.nextRunAt, action },
     };
   }
 
