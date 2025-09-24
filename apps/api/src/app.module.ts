@@ -1,5 +1,8 @@
+// apps/api/src/app.module.ts
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import * as path from "path";
+
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
@@ -10,7 +13,15 @@ import { AgentModule } from "./agent/agent.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), ".env"),              // apps/api/.env (ưu tiên khi dev)
+        path.resolve(process.cwd(), "../../.env"),        // root/.env (khi để .env ở root)
+        path.resolve(__dirname, "../../../.env"),         // dist runtime (sau khi build)
+      ],
+      expandVariables: true,
+    }),
     PrismaModule,
     UsersModule,
     AuthModule,
