@@ -71,6 +71,10 @@ export const CATEGORY_SYNONYMS: Record<string, (typeof CANONICAL_CATEGORIES)[num
   "game": "Giải trí",
   "nhạc": "Giải trí",
   "concert": "Giải trí",
+  "net": "Giải trí",
+  "chơi net": "Giải trí",
+  "quán net": "Giải trí",
+  "cyber": "Giải trí",
   "sức khỏe": "Sức khỏe",
   "y tế": "Sức khỏe",
   "bệnh viện": "Sức khỏe",
@@ -105,14 +109,33 @@ export function normalizeText(input: string): string {
 }
 
 const CATEGORY_LOOKUP = new Map<string, (typeof CANONICAL_CATEGORIES)[number]>();
+const CATEGORY_KEYWORDS: Array<{
+  keyword: string;
+  canonical: (typeof CANONICAL_CATEGORIES)[number];
+}> = [];
+
+function registerCategoryKeyword(
+  keyword: string,
+  canonical: (typeof CANONICAL_CATEGORIES)[number],
+) {
+  const normalized = normalizeText(keyword);
+  if (!normalized) {
+    return;
+  }
+
+  CATEGORY_LOOKUP.set(normalized, canonical);
+  CATEGORY_KEYWORDS.push({ keyword: normalized, canonical });
+}
 
 for (const canonical of CANONICAL_CATEGORIES) {
-  CATEGORY_LOOKUP.set(normalizeText(canonical), canonical);
+  registerCategoryKeyword(canonical, canonical);
 }
 
 for (const [keyword, canonical] of Object.entries(CATEGORY_SYNONYMS)) {
-  CATEGORY_LOOKUP.set(normalizeText(keyword), canonical);
+  registerCategoryKeyword(keyword, canonical);
 }
+
+CATEGORY_KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 
 export function resolveCategoryName(
   value?: string | null,
@@ -126,7 +149,33 @@ export function resolveCategoryName(
     return null;
   }
 
-  return CATEGORY_LOOKUP.get(normalized) ?? null;
+  const directMatch = CATEGORY_LOOKUP.get(normalized);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  for (const token of normalized.split(" ")) {
+    if (!token) {
+      continue;
+    }
+
+    const tokenMatch = CATEGORY_LOOKUP.get(token);
+    if (tokenMatch) {
+      return tokenMatch;
+    }
+  }
+
+  for (const { keyword, canonical } of CATEGORY_KEYWORDS) {
+    if (keyword.length < 3) {
+      continue;
+    }
+
+    if (normalized.includes(keyword)) {
+      return canonical;
+    }
+  }
+
+  return null;
 }
 
 export const IntentSchema = z.enum([
