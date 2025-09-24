@@ -113,7 +113,7 @@ export class RecurringTransactionsService implements OnModuleInit, OnModuleDestr
   }
 
   async list(userId: string) {
-    const items = await this.prisma.recurringTransaction.findMany({
+    const items: RecurringWithCategory[] = await this.prisma.recurringTransaction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       include: { category: true },
@@ -149,7 +149,7 @@ export class RecurringTransactionsService implements OnModuleInit, OnModuleDestr
         : DateTime.fromJSDate(nowInput)
       : DateTime.utc();
 
-    const due = await this.prisma.recurringTransaction.findMany({
+    const due: RecurringWithCategory[] = await this.prisma.recurringTransaction.findMany({
       where: {
         isActive: true,
         nextRunAt: { lte: now.toJSDate() },
@@ -247,13 +247,21 @@ export class RecurringTransactionsService implements OnModuleInit, OnModuleDestr
     occurrence: DateTime,
   ): Promise<void> {
     try {
+      const occurredAtIso = occurrence.toUTC().toISO();
+
+      if (!occurredAtIso) {
+        throw new Error(
+          `Failed to derive ISO timestamp for recurring transaction ${recurrence.id} at ${occurrence.toISO()}`,
+        );
+      }
+
       const dto: CreateTransactionDto = {
         type: recurrence.type,
         amount: recurrence.amount.toNumber(),
         currency: recurrence.currency,
         note: recurrence.note ?? undefined,
         categoryId: recurrence.categoryId ?? undefined,
-        occurredAt: occurrence.toUTC().toISO(),
+        occurredAt: occurredAtIso,
       };
 
       await this.transactionsService.create(recurrence.userId, dto, {
