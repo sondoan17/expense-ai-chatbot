@@ -47,12 +47,25 @@ import {
   getOtherCategoryLabel,
 } from './utils/agent-response.utils';
 import { buildClassificationPrompt } from './utils/classification.util';
+import { detectFastPathPayload } from './utils/fast-path.util';
 import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import type { TransactionResult } from './types/internal.types';
+
+type CachedClassificationEntry = {
+  payload: AgentPayload;
+  expiresAt: number;
+};
+
+const CLASSIFICATION_CACHE_TTL_MS = 10 * 60 * 1000;
+const CLASSIFICATION_CACHE_MAX_SIZE = 200;
+const CATEGORY_CACHE_MAX_SIZE = 200;
 
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
+
+  private readonly classificationCache = new Map<string, CachedClassificationEntry>();
+  private readonly categoryCache = new Map<string, string | null>();
 
 
   constructor(
@@ -78,33 +91,67 @@ export class AgentService {
 
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
     const now = new Date();
-    const systemPrompt = buildClassificationPrompt(now, timezone);
 
-    const chatMessages: HyperbolicMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: trimmed },
-    ];
+    let payload = this.getCachedClassification(trimmed);
+    let classificationSource: 'cache' | 'fast-path' | 'llm' | undefined = payload ? 'cache' : undefined;
 
-    let payload: AgentPayload | undefined;
-
-    try {
-      const raw = await this.hyperbolicService.complete(chatMessages, {
-        max_tokens: 350,
-        temperature: 0.1,
-        top_p: 0.8,
-        response_format: { type: 'json_object' },
+    if (!payload) {
+      const fastPath = detectFastPathPayload(trimmed, {
+        timezone,
+        now,
+        language: fallbackLanguage,
       });
 
-      logRawCompletion(this.logger, raw);
+      if (fastPath) {
+        payload = fastPath;
+        classificationSource = 'fast-path';
+      }
+    }
 
-      payload = parseAgentPayload(this.logger, raw);
-    } catch (error) {
-      this.logger.error('Agent classification failed', error instanceof Error ? error.stack : error);
+    if (!payload) {
+      const systemPrompt = buildClassificationPrompt(now, timezone);
+      const chatMessages: HyperbolicMessage[] = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: trimmed },
+      ];
+
+      try {
+        const raw = await this.hyperbolicService.complete(chatMessages, {
+          max_tokens: 350,
+          temperature: 0.1,
+          top_p: 0.8,
+          response_format: { type: 'json_object' },
+        });
+
+        logRawCompletion(this.logger, raw);
+
+        payload = parseAgentPayload(this.logger, raw);
+        classificationSource = 'llm';
+      } catch (error) {
+        this.logger.error('Agent classification failed', error instanceof Error ? error.stack : error);
+        return this.finalizeResponse(user.id, {
+          reply: buildClassificationErrorReply(fallbackLanguage),
+          intent: 'error',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (!payload) {
       return this.finalizeResponse(user.id, {
         reply: buildClassificationErrorReply(fallbackLanguage),
         intent: 'error',
-        error: error instanceof Error ? error.message : String(error),
       });
+    }
+
+    if (classificationSource === 'fast-path') {
+      this.logger.debug('Fast-path classification matched; skipping LLM request.');
+    } else if (classificationSource === 'cache') {
+      this.logger.debug('Agent classification cache hit; reusing previous payload.');
+    }
+
+    if (classificationSource !== 'cache') {
+      this.setCachedClassification(trimmed, payload);
     }
 
     const language = this.getLanguageFromPayload(payload);
@@ -553,7 +600,18 @@ export class AgentService {
   }
 
   private resolveCategory(input: string): string | null {
-    return resolveCategoryName(input);
+    const key = this.getCacheKey(input);
+    if (!key) {
+      return null;
+    }
+
+    if (this.categoryCache.has(key)) {
+      return this.categoryCache.get(key) ?? null;
+    }
+
+    const resolved = resolveCategoryName(input);
+    this.setCachedCategory(key, resolved);
+    return resolved;
   }
 
   private async findCategoryByName(name: string) {
@@ -632,5 +690,61 @@ export class AgentService {
     );
   }
 
+  private getCachedClassification(message: string): AgentPayload | undefined {
+    const key = this.getCacheKey(message);
+    if (!key) {
+      return undefined;
+    }
+
+    const entry = this.classificationCache.get(key);
+    if (!entry) {
+      return undefined;
+    }
+
+    if (entry.expiresAt < Date.now()) {
+      this.classificationCache.delete(key);
+      return undefined;
+    }
+
+    entry.expiresAt = Date.now() + CLASSIFICATION_CACHE_TTL_MS;
+    return { ...entry.payload };
+  }
+
+  private setCachedClassification(message: string, payload: AgentPayload): void {
+    const key = this.getCacheKey(message);
+    if (!key) {
+      return;
+    }
+
+    while (this.classificationCache.size >= CLASSIFICATION_CACHE_MAX_SIZE) {
+      const oldestKey = this.classificationCache.keys().next().value;
+      if (!oldestKey) {
+        break;
+      }
+      this.classificationCache.delete(oldestKey);
+    }
+
+    this.classificationCache.set(key, {
+      payload: { ...payload },
+      expiresAt: Date.now() + CLASSIFICATION_CACHE_TTL_MS,
+    });
+  }
+
+  private getCacheKey(value: string): string | null {
+    const normalized = normalizeText(value);
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private setCachedCategory(key: string, value: string | null): void {
+    while (this.categoryCache.size >= CATEGORY_CACHE_MAX_SIZE) {
+      const oldestKey = this.categoryCache.keys().next().value;
+      if (!oldestKey) {
+        break;
+      }
+      this.categoryCache.delete(oldestKey);
+    }
+
+    this.categoryCache.set(key, value ?? null);
+  }
 }
 
