@@ -54,6 +54,19 @@ import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import type { TransactionResult } from './types/internal.types';
 import { RecurringService } from '../recurring/recurring.service';
 
+const RECURRING_UPDATE_MARKERS = [
+  'cap nhat',
+  'update',
+  'thay doi',
+  'change',
+  'dieu chinh',
+  'chinh sua',
+  'chinh lai',
+  'adjust',
+  'doi lich',
+  'doi ngay',
+];
+
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
@@ -618,6 +631,8 @@ export class AgentService {
     const currency: Currency = payload.currency === 'USD' ? Currency.USD : Currency.VND;
     const note = payload.note?.trim()?.length ? payload.note.trim() : originalMessage.trim();
 
+    const preferUpdate = this.isRecurringUpdateMessage(originalMessage);
+
     const { rule, action } = await this.recurringService.createRule(user.id, {
       freq,
       dayOfMonth,
@@ -631,6 +646,8 @@ export class AgentService {
       currency,
       categoryId: category?.id ?? null,
       note,
+    }, {
+      preferUpdate,
     });
 
     const nextRun = DateTime.fromJSDate(rule.nextRunAt).setZone(rule.timezone);
@@ -663,6 +680,19 @@ export class AgentService {
       data: { rule, action },
       meta: { nextRunAt: rule.nextRunAt, action },
     };
+  }
+
+  private isRecurringUpdateMessage(message: string): boolean {
+    if (!message) {
+      return false;
+    }
+
+    const normalized = normalizeText(message);
+    if (!normalized) {
+      return false;
+    }
+
+    return RECURRING_UPDATE_MARKERS.some((marker) => normalized.includes(marker));
   }
 
   private handleSmallTalk(
