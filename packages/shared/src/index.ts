@@ -117,6 +117,47 @@ for (const [keyword, canonical] of Object.entries(CATEGORY_SYNONYMS)) {
   CATEGORY_LOOKUP.set(normalizeText(keyword), canonical);
 }
 
+const ENGLISH_FALLBACK_KEYWORDS = new Map<string, (typeof CANONICAL_CATEGORIES)[number]>([
+  ['food', CANONICAL_CATEGORIES[0]],
+  ['foods', CANONICAL_CATEGORIES[0]],
+  ['meal', CANONICAL_CATEGORIES[0]],
+  ['meals', CANONICAL_CATEGORIES[0]],
+  ['dining', CANONICAL_CATEGORIES[0]],
+  ['restaurant', CANONICAL_CATEGORIES[0]],
+  ['restaurants', CANONICAL_CATEGORIES[0]],
+  ['breakfast', CANONICAL_CATEGORIES[0]],
+  ['lunch', CANONICAL_CATEGORIES[0]],
+  ['dinner', CANONICAL_CATEGORIES[0]],
+  ['grocery', CANONICAL_CATEGORIES[0]],
+  ['groceries', CANONICAL_CATEGORIES[0]],
+  ['snack', CANONICAL_CATEGORIES[0]],
+  ['transport', CANONICAL_CATEGORIES[1]],
+  ['transportation', CANONICAL_CATEGORIES[1]],
+  ['commute', CANONICAL_CATEGORIES[1]],
+  ['rent', CANONICAL_CATEGORIES[2]],
+  ['mortgage', CANONICAL_CATEGORIES[2]],
+  ['housing', CANONICAL_CATEGORIES[2]],
+  ['utility', CANONICAL_CATEGORIES[7]],
+  ['utilities', CANONICAL_CATEGORIES[7]],
+  ['electricity', CANONICAL_CATEGORIES[7]],
+  ['water', CANONICAL_CATEGORIES[7]],
+  ['internet', CANONICAL_CATEGORIES[7]],
+  ['phone', CANONICAL_CATEGORIES[7]],
+  ['medical', CANONICAL_CATEGORIES[5]],
+  ['health', CANONICAL_CATEGORIES[5]],
+  ['doctor', CANONICAL_CATEGORIES[5]],
+  ['hospital', CANONICAL_CATEGORIES[5]],
+  ['insurance', CANONICAL_CATEGORIES[5]],
+  ['tuition', CANONICAL_CATEGORIES[6]],
+  ['education', CANONICAL_CATEGORIES[6]],
+  ['course', CANONICAL_CATEGORIES[6]],
+  ['school', CANONICAL_CATEGORIES[6]],
+  ['shopping', CANONICAL_CATEGORIES[3]],
+  ['entertainment', CANONICAL_CATEGORIES[4]],
+  ['income', CANONICAL_CATEGORIES[8]],
+  ['salary', CANONICAL_CATEGORIES[8]],
+  ['bonus', CANONICAL_CATEGORIES[8]],
+]);
 export function resolveCategoryName(
   value?: string | null,
 ): (typeof CANONICAL_CATEGORIES)[number] | null {
@@ -129,7 +170,36 @@ export function resolveCategoryName(
     return null;
   }
 
-  return CATEGORY_LOOKUP.get(normalized) ?? null;
+  const directMatch = CATEGORY_LOOKUP.get(normalized);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const tokens = normalized.split(' ').filter((token) => token.length > 0);
+  if (!tokens.length) {
+    return null;
+  }
+
+  const maxWindow = Math.min(tokens.length, 4);
+
+  for (let window = maxWindow; window >= 1; window -= 1) {
+    for (let start = 0; start <= tokens.length - window; start += 1) {
+      const slice = tokens.slice(start, start + window).join(' ');
+      const match = CATEGORY_LOOKUP.get(slice);
+      if (match) {
+        return match;
+      }
+    }
+  }
+
+  for (const token of tokens) {
+    const fallback = ENGLISH_FALLBACK_KEYWORDS.get(token);
+    if (fallback) {
+      return fallback;
+    }
+  }
+
+  return null;
 }
 
 export const IntentSchema = z.enum([
@@ -171,6 +241,12 @@ export const AgentPayloadSchema = z.object({
 
 export type Intent = z.infer<typeof IntentSchema>;
 export type AgentPayload = z.infer<typeof AgentPayloadSchema>;
+
+export interface AgentActionOption {
+  id: string;
+  label: string;
+  payload: Record<string, unknown>;
+}
 
 
 
