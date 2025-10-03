@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { Currency, TxnType } from '@prisma/client';
+import { Currency, RecurringFreq, TxnType } from '@prisma/client';
 import { TimePeriodEnum } from '@expense-ai/shared';
 
 import { AgentLanguage } from '../agent.constants';
@@ -138,6 +138,152 @@ export function buildTransactionSavedReply(
       ? `I've recorded income of ${amount}`
       : `I've recorded an expense of ${amount}`;
   return `${base}${categoryClause}.`;
+}
+
+const WEEKDAY_LABELS: Record<AgentLanguage, string[]> = {
+  vi: ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+};
+
+const MONTH_LABELS: Record<AgentLanguage, string[]> = {
+  vi: [
+    'tháng 1',
+    'tháng 2',
+    'tháng 3',
+    'tháng 4',
+    'tháng 5',
+    'tháng 6',
+    'tháng 7',
+    'tháng 8',
+    'tháng 9',
+    'tháng 10',
+    'tháng 11',
+    'tháng 12',
+  ],
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+};
+
+export function describeRecurringSchedule(
+  language: AgentLanguage,
+  params: {
+    freq: RecurringFreq;
+    dayOfMonth?: number | null;
+    weekday?: number | null;
+    nextRun: DateTime;
+  },
+): string {
+  const { freq, dayOfMonth, weekday, nextRun } = params;
+
+  switch (freq) {
+    case RecurringFreq.DAILY:
+      return language === 'vi' ? 'mỗi ngày' : 'every day';
+    case RecurringFreq.WEEKLY: {
+      const targetWeekday = typeof weekday === 'number' ? weekday : ((nextRun.weekday % 7) as number);
+      const normalized = ((targetWeekday % 7) + 7) % 7;
+      const label = WEEKDAY_LABELS[language][normalized];
+      return language === 'vi' ? `mỗi ${label.toLowerCase()}` : `every ${label}`;
+    }
+    case RecurringFreq.MONTHLY: {
+      const desiredDay = dayOfMonth ?? nextRun.day;
+      const actualDay = nextRun.day;
+      if (desiredDay !== actualDay) {
+        return language === 'vi'
+          ? 'ngày cuối mỗi tháng (khi thiếu sẽ chạy ngày cuối cùng)'
+          : 'the last day of each month (adjusted when shorter)';
+      }
+      return language === 'vi' ? `ngày ${desiredDay} hàng tháng` : `day ${desiredDay} each month`;
+    }
+    case RecurringFreq.YEARLY: {
+      const monthLabel = MONTH_LABELS[language][nextRun.month - 1];
+      const day = nextRun.day;
+      return language === 'vi'
+        ? `ngày ${day} ${monthLabel} hằng năm`
+        : `every year on ${monthLabel} ${day}`;
+    }
+    default:
+      return language === 'vi' ? 'định kỳ' : 'on schedule';
+  }
+}
+
+export function buildRecurringRuleCreatedReply(
+  language: AgentLanguage,
+  params: {
+    type: TxnType;
+    amountLabel: string;
+    categoryLabel?: string | null;
+    scheduleLabel: string;
+    timeLabel: string;
+    timezone: string;
+    nextRunLabel: string;
+  },
+): string {
+  const { type, amountLabel, categoryLabel, scheduleLabel, timeLabel, timezone, nextRunLabel } = params;
+  const categoryClause = categoryLabel
+    ? language === 'vi'
+      ? ` cho ${categoryLabel}`
+      : ` for ${categoryLabel}`
+    : '';
+
+  const action = type === TxnType.INCOME
+    ? language === 'vi'
+      ? `khoản thu ${amountLabel}`
+      : `income of ${amountLabel}`
+    : language === 'vi'
+      ? `khoản chi ${amountLabel}`
+      : `an expense of ${amountLabel}`;
+
+  if (language === 'vi') {
+    return `Mình sẽ tự động ghi ${action}${categoryClause} ${scheduleLabel} lúc ${timeLabel} (lần tiếp theo: ${nextRunLabel}, múi giờ ${timezone}).`;
+  }
+
+  return `I'll automatically record ${action}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
+}
+
+export function buildRecurringRuleUpdatedReply(
+  language: AgentLanguage,
+  params: {
+    type: TxnType;
+    amountLabel: string;
+    categoryLabel?: string | null;
+    scheduleLabel: string;
+    timeLabel: string;
+    timezone: string;
+    nextRunLabel: string;
+  },
+): string {
+  const { type, amountLabel, categoryLabel, scheduleLabel, timeLabel, timezone, nextRunLabel } = params;
+  const categoryClause = categoryLabel
+    ? language === 'vi'
+      ? ` cho ${categoryLabel}`
+      : ` for ${categoryLabel}`
+    : '';
+
+  const action = type === TxnType.INCOME
+    ? language === 'vi'
+      ? `khoản thu ${amountLabel}`
+      : `income of ${amountLabel}`
+    : language === 'vi'
+      ? `khoản chi ${amountLabel}`
+      : `an expense of ${amountLabel}`;
+
+  if (language === 'vi') {
+    return `Mình đã cập nhật lịch ghi ${action}${categoryClause} ${scheduleLabel} lúc ${timeLabel} (lần tiếp theo: ${nextRunLabel}, múi giờ ${timezone}).`;
+  }
+
+  return `I've updated the schedule to record ${action}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
 }
 
 export function buildAskBudgetAmountReply(language: AgentLanguage): string {

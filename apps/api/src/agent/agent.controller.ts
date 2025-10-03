@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { AgentService } from './agent.service';
 import { AgentChatDto } from './dto/agent-chat.dto';
+import { AgentActionDto } from './dto/agent-action.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PublicUser } from '../users/types/public-user.type';
@@ -16,10 +17,14 @@ export class AgentController {
     const safeLimit = Number.isFinite(parsed) ? parsed : undefined;
     return this.agentService.getHistory(user, safeLimit);
   }
+
   @Post('chat')
   chat(@CurrentUser() user: PublicUser, @Body() dto: AgentChatDto) {
     return this.agentService.chat(user, dto.message);
   }
+
+  @Post('action')
+  action(@CurrentUser() user: PublicUser, @Body() dto: AgentActionDto) {
+    return this.agentService.handleAction(user, dto);
+  }
 }
-
-

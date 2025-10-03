@@ -240,3 +240,28 @@
   transform: translateX(2px);
 }
 
+.chat-bubble-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chat-action-button {
+  border: 0;
+  border-radius: 12px;
+  padding: 0.35rem 0.9rem;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.chat-action-button:hover:not(:disabled) {
+  background: rgba(129, 140, 248, 0.28);
+}
+
+.chat-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

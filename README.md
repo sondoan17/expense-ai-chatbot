@@ -1,57 +1,133 @@
-# expense-ai-chatbot
+﻿# Expense AI Chatbot
 
-Expense AI is a monorepo that showcases an AI-assisted personal expense manager. The project now includes a full React PWA front-end, a NestJS backend, and shared packages for types and schemas.
+Expense AI is a production-style side project that combines a chat-first experience with a full NestJS backend. Users can capture expenses, incomes, budgets, and recurring rules in natural Vietnamese or English, while still getting traditional dashboards and reports.
 
-## Structure
+## Highlights
 
-- `apps/web` � React + Vite client with chat experience, dashboards, charts, offline queue, and PWA setup.
-- `apps/api` � NestJS service exposing auth, transactions, budgets, reports, and agent endpoints.
-- `packages/shared` � Shared Zod schemas, enums, and category helpers used on both tiers.
-- `packages/ui` � Placeholder workspace for future shared UI primitives.
-- `prisma/` � Prisma schema, migrations, and seed script.
+- Chat-driven capture powered by the Hyperbolic LLM with intent parsing, validation, and deterministic replies.
+- React + Vite progressive web app with offline queueing, chat history, dashboards, and TanStack Query data layer.
+- NestJS API covering auth, transactions, budgets, reports, recurring automation, and chat agent orchestration.
+- Prisma + PostgreSQL schema with categories, chat transcripts, and recurring rule execution logs.
+- Shared zod schemas and helpers that keep classifications, API DTOs, and the UI in sync.
 
-## Tooling & Scripts
+## Repository layout
 
-- npm workspaces orchestrated via Turborepo.
-- TypeScript strict configs with central `tsconfig.base.json` path aliases.
-- ESLint + Prettier with Husky pre-commit hooks.
-- Prisma CLI helpers (`npm run db:generate`, `db:migrate`, `db:deploy`, `db:seed`).
-- `.env.example` documents required environment variables (PostgreSQL, Hyperbolic, JWT, timezone).
-
-Common commands:
-
-```bash
-npm install              # install all workspace dependencies
-npm run dev              # start Vite + Nest (proxy /api in dev)
-npm run lint             # run ESLint for every package
-npm run format           # check formatting
-npm run format:write     # auto-format sources
-npm run db:generate      # regenerate Prisma client
-npm run build -w apps/api # build the API
-npm run build -w apps/web # build the web PWA
+```
+.
++- apps/
+|  +- api/          # NestJS backend (REST + agent)
+|  +- web/          # React PWA client
++- packages/
+|  +- shared/       # Shared enums, zod schemas, category helpers
+|  +- ui/           # Placeholder for shared UI primitives
++- prisma/          # Schema, migrations, seed helpers
++- docker/          # Container tooling (compose, deployment snippets)
 ```
 
-## Frontend (Phase 4)
+## Backend (NestJS)
 
-- Responsive shell with navigation between chat and dashboard.
-- Authentication flow (email/password) with token storage and automatic refresh of the profile endpoint.
-- Chat experience backed by the `/agent/chat` endpoint with optimistic UX, quick suggestions, delivery states, and offline queueing (messages are stored with `localforage` while offline and synced when the network returns).
-- Dashboard with TanStack Query + Chart.js showing category breakdown, cashflow line chart, budget progress, and recent activity.
-- React Query for caching/API coordination, React Router for routing, PWA support via `vite-plugin-pwa`, and a configurable service worker for API runtime caching.
-- Online/offline indicators and background sync hook to replay queued chat requests.
+- Auth: email + password registration and login, bcrypt hashing, JWT bearer guard, /auth/register, /auth/login, /users/me.
+- Transactions: CRUD endpoints, filtered lists, summaries, deletion, Luxon-based date range helpers, metadata storage.
+- Budgets: upsert, list, delete, and live status (spent vs remaining vs overspent) by month and optional category.
+- Reports: consolidated overview endpoint with totals, category breakdown, and recent transactions for the dashboard.
+- Agent: `/agent/chat` and `/agent/history`, Hyperbolic classification prompt, chat persistence, confidence gating, multilingual replies, and support for add_expense, add_income, query_total, query_by_category, set_budget, get_budget_status, list_recent, set_recurring, undo_or_delete (placeholder), small_talk.
+- Recurring automation: natural language scheduling (`set_recurring`) mapped to `RecurringRule`, intelligent update detection, `RecurringService.processDueRules` for cron workers, and execution logging.
+- Integrations: Hyperbolic client with `response_format: json_object`, request preview logging, Prisma service bootstrap, configuration via `APP_TIMEZONE`, `HYPERBOLIC_*`, and JWT env vars.
+- Persistence: chat transcripts stored in `ChatMessage`, transactions and budgets indexed for fast range queries, recurring run logs for auditing.
 
-## Backend Highlights
+## Frontend (React + Vite PWA)
 
-- Auth: `/auth/register`, `/auth/login`, `/users/me`.
-- Transactions: `/transactions` CRUD, `/transactions/summary`, list and totals with filters.
-- Budgets: `/budgets`, `/budgets/:id/status`.
-- Reports: `/reports/overview` for dashboard insights.
-- Agent: `/agent/chat` orchestrates Hyperbolic LLM intent parsing and executes transactions/budgets flows.
-- Prisma + PostgreSQL data layer with category taxonomy and helper utilities shared with the web client.
+- Authentication flow with email/password screens, protected routes, and JWT storage synced from the backend.
+- Chat page with suggestions, optimistic outgoing bubbles, offline queue backed by localforage, automatic sync when the network returns, and `/agent/history` bootstrap.
+- Dashboard with TanStack Query, category donut, cashflow line, budget progress, and recent transaction feed.
+- Shared layout, responsive navigation between Chat and Dashboard, light/dark ready design hints.
+- Vite PWA plugin for installability, background API caching, and automatic service worker updates.
+- Hooks: `useOfflineAgentSync`, `useOnlineStatus`, React Query mutations with typed API client.
 
-## Next Ideas
+## Shared package
 
-1. Extend agent flows with undo/delete confirmations and richer prompt templating.
-2. Add collaborative features (shared household spaces, multi-user budgets).
-3. Implement end-to-end tests (e.g., Playwright) for the PWA flows.
-4. Wire CI/CD and deployment manifests (Docker Compose, Render/Vercel pipelines).
+- `packages/shared` exports zod schemas (`AgentPayloadSchema`, enums, category utilities, recurring frequency helpers).
+- Canonical category list with Vietnamese-friendly synonyms mapped to normalized ASCII keys.
+- Reusable normalization helpers (`normalizeText`, `resolveCategoryName`) used on both client and server.
+
+## Data model
+
+- `User`, `Transaction`, `Category`, `Budget`, `RecurringRule`, `RecurringRunLog`, `ChatMessage`.
+- Enums: `Currency`, `TxnType`, `RecurringFreq`, `ChatRole`, `ChatMessageStatus`.
+- Transactions and budgets index by user, category, and time for efficient summaries.
+- Recurring rules track next/last run timestamps and embed timezone-aware scheduling metadata.
+- Chat messages persist the assistant replies and error states for offline replay.
+
+## Environment setup
+
+1. Copy `.env.example` to `.env` at the project root.
+2. Provide PostgreSQL credentials and Hyperbolic API key.
+3. Optional: set `APP_TIMEZONE` (defaults to `Asia/Ho_Chi_Minh`) and `WEB_ORIGIN` for CORS.
+
+Backend essentials:
+
+```
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/expense?schema=public
+HYPERBOLIC_API_URL=https://api.hyperbolic.xyz/v1/chat/completions
+HYPERBOLIC_API_KEY=sk_xxx
+HYPERBOLIC_MODEL=Qwen/Qwen3-Next-80B-A3B-Thinking
+JWT_SECRET=replace_me
+JWT_EXPIRES_IN=7d
+APP_TIMEZONE=Asia/Ho_Chi_Minh
+```
+
+Frontend essentials:
+
+```
+VITE_API_BASE_URL=http://localhost:4000/api
+WEB_ORIGIN=http://localhost:5173,http://localhost:4173
+```
+
+## Running locally
+
+```
+npm install
+npm run db:generate        # prisma generate
+npm run dev                # runs Vite client + Nest API via Turborepo pipelines
+```
+
+The dev script proxies `/api/*` to the Nest server so the PWA can call authenticated endpoints during local development.
+
+To apply migrations or seed initial data:
+
+```
+npm run db:migrate         # prisma migrate deploy
+npm run db:seed            # populate base categories (seed script)
+```
+
+## Useful commands
+
+- `npm run build` – turbo builds API and web bundles.
+- `npm run lint` – workspace wide ESLint runs.
+- `npm run test` – placeholder hook for future unit tests.
+- `npm run format` / `npm run format:write` – Prettier in check or write mode.
+
+## Testing and quality
+
+- TypeScript strict mode across API and web apps.
+- ESLint + Prettier enforced via Husky and lint-staged pre-commit hooks.
+- Prisma Client typings and DTO schemas provide end-to-end type safety.
+- Agent payload validation uses zod to reject malformed or low-confidence extractions before execution.
+
+## Deployment notes
+
+- `docker/docker-compose.yml` spins up PostgreSQL and the API for local or staging use.
+- The backend is stateless and ready for platforms such as Render or Railway; the web app can deploy to Vercel or Netlify.
+- Set environment variables through your hosting provider, never commit secrets.
+- Schedule `RecurringService.processDueRules` with a worker or cron job to realize automatic entries.
+
+## Future ideas
+
+- Undo/delete flows for agent commands.
+- OCR of receipts feeding the agent.
+- Multi-currency awareness with FX snapshots.
+- Sharing spaces for households or teams.
+
+## License
+
+MIT (see `LICENSE` if provided).

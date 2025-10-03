@@ -4,6 +4,11 @@
   "version": "0.1.0",
   "type": "commonjs",
   "scripts": {
+    "prisma:generate": "prisma generate --schema ../../prisma/schema.prisma",
+    "predev": "npm run prisma:generate",
+    "prestart": "npm run prisma:generate",
+    "prebuild": "npm run prisma:generate",
+    "prelint": "npm run prisma:generate",
     "dev": "nest start --watch --entryFile apps/api/src/main",
     "start": "nest start --entryFile apps/api/src/main",
     "build": "nest build",

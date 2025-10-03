@@ -1,6 +1,7 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+﻿import { z } from 'zod';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentPayload, Intent, normalizeText, resolveCategoryName } from '@expense-ai/shared';
+import { AgentActionOption, AgentPayload, Intent, normalizeText, resolveCategoryName } from '@expense-ai/shared';
 import { HyperbolicService, HyperbolicMessage } from '../integrations/hyperbolic.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { BudgetsService } from '../budgets/budgets.service';
@@ -8,8 +9,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TransactionSummaryQueryDto } from '../transactions/dto/transaction-summary-query.dto';
 import { ListTransactionsQueryDto } from '../transactions/dto/list-transactions-query.dto';
 import { PublicUser } from '../users/types/public-user.type';
+import { AgentActionDto } from './dto/agent-action.dto';
 import { AgentChatResult } from './types/agent-response.type';
-import { ChatMessageStatus, ChatRole, Currency, Prisma, TxnType } from '@prisma/client';
+import { ChatMessageStatus, ChatRole, Currency, Prisma, RecurringFreq, TxnType } from '@prisma/client';
 import { DateTime } from 'luxon';
 
 import {
@@ -36,9 +38,12 @@ import {
   buildSummaryByCategoryReply,
   buildSummaryTotalsReply,
   buildTransactionSavedReply,
+  buildRecurringRuleCreatedReply,
+  buildRecurringRuleUpdatedReply,
   buildUndoNotSupportedReply,
   buildUnsupportedIntentReply,
   describeRange,
+  describeRecurringSchedule,
   formatCurrency,
   formatDate,
   formatMonthYear,
@@ -49,6 +54,29 @@ import {
 import { buildClassificationPrompt } from './utils/classification.util';
 import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import type { TransactionResult } from './types/internal.types';
+import { RecurringService } from '../recurring/recurring.service';
+
+const RECURRING_UPDATE_MARKERS = [
+  'cap nhat',
+  'update',
+  'thay doi',
+  'change',
+  'dieu chinh',
+  'chinh sua',
+  'chinh lai',
+  'adjust',
+  'doi lich',
+  'doi ngay',
+];
+
+const BUDGET_ACTION_PAYLOAD_SCHEMA = z.object({
+  budgetId: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.nativeEnum(Currency),
+  language: z.enum(['vi', 'en']).default('vi'),
+});
+
+type BudgetActionPayload = z.infer<typeof BUDGET_ACTION_PAYLOAD_SCHEMA>;
 
 @Injectable()
 export class AgentService {
@@ -59,6 +87,7 @@ export class AgentService {
     private readonly hyperbolicService: HyperbolicService,
     private readonly transactionsService: TransactionsService,
     private readonly budgetsService: BudgetsService,
+    private readonly recurringService: RecurringService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {}
@@ -145,6 +174,9 @@ export class AgentService {
             parsed: payload,
           };
           break;
+        case 'set_recurring':
+          result = await this.handleSetRecurring(user, trimmed, payload, timezone, language);
+          break;
         case 'small_talk':
           result = this.handleSmallTalk(user, payload, language);
           break;
@@ -164,6 +196,54 @@ export class AgentService {
         reply: buildHandlerErrorReply(language),
         intent: 'error',
         parsed: payload,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async handleAction(user: PublicUser, dto: AgentActionDto): Promise<AgentChatResult> {
+    const label = dto.label?.trim() ?? '';
+    const fallbackLanguage = label ? this.detectLanguageFromMessage(label) : DEFAULT_LANGUAGE;
+
+    const messageLabel = label || '[Action]';
+    await this.persistUserMessage(user.id, messageLabel);
+
+    const payloadResult = BUDGET_ACTION_PAYLOAD_SCHEMA.safeParse(dto.payload);
+    if (!payloadResult.success) {
+      return this.finalizeResponse(user.id, {
+        reply: buildHandlerErrorReply(fallbackLanguage),
+        intent: 'error',
+        error: 'INVALID_ACTION_PAYLOAD',
+      });
+    }
+
+    const parsedPayload = payloadResult.data;
+    const language = parsedPayload.language === 'en' ? 'en' : 'vi';
+
+    try {
+      let result: AgentChatResult;
+
+      switch (dto.actionId) {
+        case 'set_budget_update':
+          result = await this.handleBudgetUpdateAction(user, parsedPayload, language);
+          break;
+        case 'set_budget_increase':
+          result = await this.handleBudgetIncreaseAction(user, parsedPayload, language);
+          break;
+        default:
+          result = {
+            reply: buildUnsupportedIntentReply(language),
+            intent: 'error',
+          };
+          break;
+      }
+
+      return this.finalizeResponse(user.id, result);
+    } catch (error) {
+      this.logger.error('Agent action failed', error instanceof Error ? error.stack : error);
+      return this.finalizeResponse(user.id, {
+        reply: buildHandlerErrorReply(language),
+        intent: 'error',
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -301,6 +381,54 @@ export class AgentService {
     const categoryName = payload.category ? this.resolveCategory(payload.category) : null;
     const category = categoryName ? await this.findCategoryByName(categoryName) : null;
 
+    const existingBudget = await this.prisma.budget.findFirst({
+      where: {
+        userId: user.id,
+        month,
+        year,
+        categoryId: category?.id ?? null,
+      },
+      include: { category: true },
+    });
+
+    if (existingBudget) {
+      const basePayload = {
+        budgetId: existingBudget.id,
+        amount: payload.amount,
+        currency,
+        language,
+      };
+
+      const actions: AgentActionOption[] = [
+        {
+          id: 'set_budget_update',
+          label: language === 'vi' ? 'Cập nhật' : 'Update',
+          payload: basePayload,
+        },
+        {
+          id: 'set_budget_increase',
+          label: language === 'vi' ? 'Tăng thêm' : 'Add more',
+          payload: basePayload,
+        },
+      ];
+
+      return {
+        reply:
+          language === 'vi'
+            ? 'Giới hạn của danh mục này đã tồn tại, bạn muốn tôi cập nhật hay tăng thêm?'
+            : 'A budget for this category already exists. Would you like me to update it or add more?',
+        intent: 'clarify',
+        parsed: payload,
+        data: { budget: existingBudget },
+        meta: {
+          pendingIntent: 'set_budget',
+          existingBudgetId: existingBudget.id,
+          requestedAmount: payload.amount,
+        },
+        actions,
+      };
+    }
+
     const budget = await this.budgetsService.upsert(user.id, {
       month,
       year,
@@ -322,6 +450,122 @@ export class AgentService {
       intent: payload.intent,
       parsed: payload,
       data: { budget },
+    };
+  }
+
+  private async handleBudgetUpdateAction(
+    user: PublicUser,
+    payload: BudgetActionPayload,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { id: payload.budgetId, userId: user.id },
+      include: { category: true },
+    });
+
+    if (!budget) {
+      const message =
+        language === 'vi'
+          ? 'Mình không tìm thấy giới hạn này nữa, bạn thử đặt lại giúp mình nhé.'
+          : "I couldn't find that budget anymore. Please try setting it again.";
+      return {
+        reply: message,
+        intent: 'error',
+      };
+    }
+
+    if (budget.currency !== payload.currency) {
+      const message =
+        language === 'vi'
+          ? 'Loại tiền tệ không khớp với giới hạn hiện có, bạn thử đặt lại một giới hạn mới nhé.'
+          : 'The currency does not match the existing budget. Please create a new budget instead.';
+      return {
+        reply: message,
+        intent: 'error',
+        data: { budget },
+      };
+    }
+
+    const updated = await this.prisma.budget.update({
+      where: { id: budget.id },
+      data: {
+        limitAmount: new Prisma.Decimal(payload.amount),
+      },
+      include: { category: true },
+    });
+
+    const amountLabel = formatCurrency(updated.limitAmount.toNumber(), updated.currency, language);
+    const monthLabel = formatMonthYear(updated.month, updated.year, language);
+    const categoryLabel = getCategoryLabel(language, updated.category?.name ?? null);
+
+    const reply =
+      language === 'vi'
+        ? `Mình đã cập nhật giới hạn ${categoryLabel} trong ${monthLabel} thành ${amountLabel}.`
+        : `Updated the ${categoryLabel} budget for ${monthLabel} to ${amountLabel}.`;
+
+    return {
+      reply,
+      intent: 'set_budget',
+      data: { budget: updated },
+    };
+  }
+
+  private async handleBudgetIncreaseAction(
+    user: PublicUser,
+    payload: BudgetActionPayload,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { id: payload.budgetId, userId: user.id },
+      include: { category: true },
+    });
+
+    if (!budget) {
+      const message =
+        language === 'vi'
+          ? 'Mình không tìm thấy giới hạn này nữa, bạn thử đặt lại giúp mình nhé.'
+          : "I couldn't find that budget anymore. Please try setting it again.";
+      return {
+        reply: message,
+        intent: 'error',
+      };
+    }
+
+    if (budget.currency !== payload.currency) {
+      const message =
+        language === 'vi'
+          ? 'Loại tiền tệ không khớp với giới hạn hiện có, bạn thử đặt lại một giới hạn mới nhé.'
+          : 'The currency does not match the existing budget. Please create a new budget instead.';
+      return {
+        reply: message,
+        intent: 'error',
+        data: { budget },
+      };
+    }
+
+    const increment = new Prisma.Decimal(payload.amount);
+    const updated = await this.prisma.budget.update({
+      where: { id: budget.id },
+      data: {
+        limitAmount: budget.limitAmount.add(increment),
+      },
+      include: { category: true },
+    });
+
+    const incrementLabel = formatCurrency(payload.amount, budget.currency, language);
+    const newLimitLabel = formatCurrency(updated.limitAmount.toNumber(), updated.currency, language);
+    const monthLabel = formatMonthYear(updated.month, updated.year, language);
+    const categoryLabel = getCategoryLabel(language, updated.category?.name ?? null);
+
+    const reply =
+      language === 'vi'
+        ? `Đã tăng thêm ${incrementLabel} cho giới hạn ${categoryLabel} trong ${monthLabel}. Giới hạn mới là ${newLimitLabel}.`
+        : `Added ${incrementLabel} to the ${categoryLabel} budget for ${monthLabel}. The new limit is ${newLimitLabel}.`;
+
+    return {
+      reply,
+      intent: 'set_budget',
+      data: { budget: updated },
     };
   }
 
@@ -539,6 +783,141 @@ export class AgentService {
     };
   }
 
+  private async handleSetRecurring(
+    user: PublicUser,
+    originalMessage: string,
+    payload: AgentPayload,
+    defaultTimezone: string,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    if (!payload.amount || payload.amount <= 0) {
+      return {
+        reply: buildMissingAmountReply(language),
+        intent: 'clarify',
+        parsed: payload,
+      };
+    }
+
+    const freq: RecurringFreq = payload.recurring_freq
+      ? (payload.recurring_freq as RecurringFreq)
+      : RecurringFreq.MONTHLY;
+
+    const timezone = payload.recurring_timezone?.trim() || defaultTimezone || DEFAULT_TIMEZONE;
+    let startDateTime = payload.recurring_start_date
+      ? DateTime.fromISO(payload.recurring_start_date, { zone: timezone })
+      : DateTime.now().setZone(timezone);
+    if (!startDateTime.isValid) {
+      startDateTime = DateTime.now().setZone(timezone);
+    }
+
+    let endDateTime: DateTime | undefined;
+    if (payload.recurring_end_date) {
+      const parsedEnd = DateTime.fromISO(payload.recurring_end_date, { zone: timezone });
+      if (parsedEnd.isValid) {
+        endDateTime = parsedEnd;
+      }
+    }
+
+    const timeOfDay = payload.recurring_time_of_day ?? '07:00';
+
+    const categoryName = payload.category ? this.resolveCategory(payload.category) : null;
+    const category = categoryName ? await this.findCategoryByName(categoryName) : null;
+
+    let txnType: TxnType;
+    if (payload.recurring_txn_type === 'INCOME') {
+      txnType = TxnType.INCOME;
+    } else if (payload.recurring_txn_type === 'EXPENSE') {
+      txnType = TxnType.EXPENSE;
+    } else {
+      txnType = categoryName === 'Thu nhập' ? TxnType.INCOME : TxnType.EXPENSE;
+    }
+
+    let weekday: number | undefined;
+    if (freq === RecurringFreq.WEEKLY) {
+      if (typeof payload.recurring_weekday === 'number') {
+        weekday = payload.recurring_weekday;
+      } else {
+        const luxonWeekday = startDateTime.weekday; // 1 (Mon) .. 7 (Sun)
+        weekday = luxonWeekday === 7 ? 0 : luxonWeekday;
+      }
+    }
+
+    let dayOfMonth: number | undefined;
+    if (freq === RecurringFreq.MONTHLY) {
+      if (typeof payload.recurring_day_of_month === 'number') {
+        dayOfMonth = payload.recurring_day_of_month;
+      } else {
+        dayOfMonth = startDateTime.day;
+      }
+    }
+
+    const currency: Currency = payload.currency === 'USD' ? Currency.USD : Currency.VND;
+    const note = payload.note?.trim()?.length ? payload.note.trim() : originalMessage.trim();
+
+    const preferUpdate = this.isRecurringUpdateMessage(originalMessage);
+
+    const { rule, action } = await this.recurringService.createRule(user.id, {
+      freq,
+      dayOfMonth,
+      weekday,
+      timeOfDay,
+      timezone,
+      startDate: startDateTime.toJSDate(),
+      endDate: endDateTime?.toJSDate(),
+      type: txnType,
+      amount: payload.amount,
+      currency,
+      categoryId: category?.id ?? null,
+      note,
+    }, {
+      preferUpdate,
+    });
+
+    const nextRun = DateTime.fromJSDate(rule.nextRunAt).setZone(rule.timezone);
+    const amountLabel = formatCurrency(rule.amount.toNumber(), rule.currency, language);
+    const categoryLabel = rule.category?.name ?? categoryName ?? null;
+    const scheduleLabel = describeRecurringSchedule(language, {
+      freq: rule.freq,
+      dayOfMonth: rule.dayOfMonth,
+      weekday: rule.weekday,
+      nextRun,
+    });
+    const nextRunIso = nextRun.toISO() ?? nextRun.toISODate() ?? nextRun.toFormat('yyyy-MM-dd');
+    const nextRunLabel = formatDate(nextRunIso, rule.timezone);
+
+    const replyBuilder =
+      action === 'updated' ? buildRecurringRuleUpdatedReply : buildRecurringRuleCreatedReply;
+
+    return {
+      reply: replyBuilder(language, {
+        type: rule.type,
+        amountLabel,
+        categoryLabel,
+        scheduleLabel,
+        timeLabel: rule.timeOfDay,
+        timezone: rule.timezone,
+        nextRunLabel,
+      }),
+      intent: payload.intent,
+      parsed: payload,
+      data: { rule, action },
+      meta: { nextRunAt: rule.nextRunAt, action },
+    };
+  }
+
+  private isRecurringUpdateMessage(message: string): boolean {
+    if (!message) {
+      return false;
+    }
+
+    const normalized = normalizeText(message);
+    if (!normalized) {
+      return false;
+    }
+
+    return RECURRING_UPDATE_MARKERS.some((marker) => normalized.includes(marker));
+  }
+
   private handleSmallTalk(
     user: PublicUser,
     payload: AgentPayload,
@@ -633,4 +1012,10 @@ export class AgentService {
   }
 
 }
+
+
+
+
+
+
 
