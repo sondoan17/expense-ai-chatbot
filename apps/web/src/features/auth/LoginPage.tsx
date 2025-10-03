@@ -35,7 +35,7 @@ export function LoginPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="ban@vidu.com"
+              placeholder="email@example.com"
               required
             />
           </label>

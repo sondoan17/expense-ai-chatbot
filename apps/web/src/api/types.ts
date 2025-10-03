@@ -1,4 +1,4 @@
-import { Currency, TxnType } from '@expense-ai/shared';
+﻿import { AgentActionOption, Currency, TxnType } from '@expense-ai/shared';
 
 export interface UserDto {
   id: string;
@@ -118,6 +118,10 @@ export interface AgentChatResponse {
   data?: unknown;
   parsed?: unknown;
   meta?: unknown;
+  actions?: AgentActionOption[];
   error?: string;
 }
+
+
+
 
