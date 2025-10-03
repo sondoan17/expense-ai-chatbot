@@ -1,6 +1,7 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+﻿import { z } from 'zod';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentPayload, Intent, normalizeText, resolveCategoryName } from '@expense-ai/shared';
+import { AgentActionOption, AgentPayload, Intent, normalizeText, resolveCategoryName } from '@expense-ai/shared';
 import { HyperbolicService, HyperbolicMessage } from '../integrations/hyperbolic.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { BudgetsService } from '../budgets/budgets.service';
@@ -8,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TransactionSummaryQueryDto } from '../transactions/dto/transaction-summary-query.dto';
 import { ListTransactionsQueryDto } from '../transactions/dto/list-transactions-query.dto';
 import { PublicUser } from '../users/types/public-user.type';
+import { AgentActionDto } from './dto/agent-action.dto';
 import { AgentChatResult } from './types/agent-response.type';
 import { ChatMessageStatus, ChatRole, Currency, Prisma, RecurringFreq, TxnType } from '@prisma/client';
 import { DateTime } from 'luxon';
@@ -66,6 +68,15 @@ const RECURRING_UPDATE_MARKERS = [
   'doi lich',
   'doi ngay',
 ];
+
+const BUDGET_ACTION_PAYLOAD_SCHEMA = z.object({
+  budgetId: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.nativeEnum(Currency),
+  language: z.enum(['vi', 'en']).default('vi'),
+});
+
+type BudgetActionPayload = z.infer<typeof BUDGET_ACTION_PAYLOAD_SCHEMA>;
 
 @Injectable()
 export class AgentService {
@@ -185,6 +196,54 @@ export class AgentService {
         reply: buildHandlerErrorReply(language),
         intent: 'error',
         parsed: payload,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async handleAction(user: PublicUser, dto: AgentActionDto): Promise<AgentChatResult> {
+    const label = dto.label?.trim() ?? '';
+    const fallbackLanguage = label ? this.detectLanguageFromMessage(label) : DEFAULT_LANGUAGE;
+
+    const messageLabel = label || '[Action]';
+    await this.persistUserMessage(user.id, messageLabel);
+
+    const payloadResult = BUDGET_ACTION_PAYLOAD_SCHEMA.safeParse(dto.payload);
+    if (!payloadResult.success) {
+      return this.finalizeResponse(user.id, {
+        reply: buildHandlerErrorReply(fallbackLanguage),
+        intent: 'error',
+        error: 'INVALID_ACTION_PAYLOAD',
+      });
+    }
+
+    const parsedPayload = payloadResult.data;
+    const language = parsedPayload.language === 'en' ? 'en' : 'vi';
+
+    try {
+      let result: AgentChatResult;
+
+      switch (dto.actionId) {
+        case 'set_budget_update':
+          result = await this.handleBudgetUpdateAction(user, parsedPayload, language);
+          break;
+        case 'set_budget_increase':
+          result = await this.handleBudgetIncreaseAction(user, parsedPayload, language);
+          break;
+        default:
+          result = {
+            reply: buildUnsupportedIntentReply(language),
+            intent: 'error',
+          };
+          break;
+      }
+
+      return this.finalizeResponse(user.id, result);
+    } catch (error) {
+      this.logger.error('Agent action failed', error instanceof Error ? error.stack : error);
+      return this.finalizeResponse(user.id, {
+        reply: buildHandlerErrorReply(language),
+        intent: 'error',
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -322,6 +381,54 @@ export class AgentService {
     const categoryName = payload.category ? this.resolveCategory(payload.category) : null;
     const category = categoryName ? await this.findCategoryByName(categoryName) : null;
 
+    const existingBudget = await this.prisma.budget.findFirst({
+      where: {
+        userId: user.id,
+        month,
+        year,
+        categoryId: category?.id ?? null,
+      },
+      include: { category: true },
+    });
+
+    if (existingBudget) {
+      const basePayload = {
+        budgetId: existingBudget.id,
+        amount: payload.amount,
+        currency,
+        language,
+      };
+
+      const actions: AgentActionOption[] = [
+        {
+          id: 'set_budget_update',
+          label: language === 'vi' ? 'Cập nhật' : 'Update',
+          payload: basePayload,
+        },
+        {
+          id: 'set_budget_increase',
+          label: language === 'vi' ? 'Tăng thêm' : 'Add more',
+          payload: basePayload,
+        },
+      ];
+
+      return {
+        reply:
+          language === 'vi'
+            ? 'Giới hạn của danh mục này đã tồn tại, bạn muốn tôi cập nhật hay tăng thêm?'
+            : 'A budget for this category already exists. Would you like me to update it or add more?',
+        intent: 'clarify',
+        parsed: payload,
+        data: { budget: existingBudget },
+        meta: {
+          pendingIntent: 'set_budget',
+          existingBudgetId: existingBudget.id,
+          requestedAmount: payload.amount,
+        },
+        actions,
+      };
+    }
+
     const budget = await this.budgetsService.upsert(user.id, {
       month,
       year,
@@ -343,6 +450,122 @@ export class AgentService {
       intent: payload.intent,
       parsed: payload,
       data: { budget },
+    };
+  }
+
+  private async handleBudgetUpdateAction(
+    user: PublicUser,
+    payload: BudgetActionPayload,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { id: payload.budgetId, userId: user.id },
+      include: { category: true },
+    });
+
+    if (!budget) {
+      const message =
+        language === 'vi'
+          ? 'Mình không tìm thấy giới hạn này nữa, bạn thử đặt lại giúp mình nhé.'
+          : "I couldn't find that budget anymore. Please try setting it again.";
+      return {
+        reply: message,
+        intent: 'error',
+      };
+    }
+
+    if (budget.currency !== payload.currency) {
+      const message =
+        language === 'vi'
+          ? 'Loại tiền tệ không khớp với giới hạn hiện có, bạn thử đặt lại một giới hạn mới nhé.'
+          : 'The currency does not match the existing budget. Please create a new budget instead.';
+      return {
+        reply: message,
+        intent: 'error',
+        data: { budget },
+      };
+    }
+
+    const updated = await this.prisma.budget.update({
+      where: { id: budget.id },
+      data: {
+        limitAmount: new Prisma.Decimal(payload.amount),
+      },
+      include: { category: true },
+    });
+
+    const amountLabel = formatCurrency(updated.limitAmount.toNumber(), updated.currency, language);
+    const monthLabel = formatMonthYear(updated.month, updated.year, language);
+    const categoryLabel = getCategoryLabel(language, updated.category?.name ?? null);
+
+    const reply =
+      language === 'vi'
+        ? `Mình đã cập nhật giới hạn ${categoryLabel} trong ${monthLabel} thành ${amountLabel}.`
+        : `Updated the ${categoryLabel} budget for ${monthLabel} to ${amountLabel}.`;
+
+    return {
+      reply,
+      intent: 'set_budget',
+      data: { budget: updated },
+    };
+  }
+
+  private async handleBudgetIncreaseAction(
+    user: PublicUser,
+    payload: BudgetActionPayload,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { id: payload.budgetId, userId: user.id },
+      include: { category: true },
+    });
+
+    if (!budget) {
+      const message =
+        language === 'vi'
+          ? 'Mình không tìm thấy giới hạn này nữa, bạn thử đặt lại giúp mình nhé.'
+          : "I couldn't find that budget anymore. Please try setting it again.";
+      return {
+        reply: message,
+        intent: 'error',
+      };
+    }
+
+    if (budget.currency !== payload.currency) {
+      const message =
+        language === 'vi'
+          ? 'Loại tiền tệ không khớp với giới hạn hiện có, bạn thử đặt lại một giới hạn mới nhé.'
+          : 'The currency does not match the existing budget. Please create a new budget instead.';
+      return {
+        reply: message,
+        intent: 'error',
+        data: { budget },
+      };
+    }
+
+    const increment = new Prisma.Decimal(payload.amount);
+    const updated = await this.prisma.budget.update({
+      where: { id: budget.id },
+      data: {
+        limitAmount: budget.limitAmount.add(increment),
+      },
+      include: { category: true },
+    });
+
+    const incrementLabel = formatCurrency(payload.amount, budget.currency, language);
+    const newLimitLabel = formatCurrency(updated.limitAmount.toNumber(), updated.currency, language);
+    const monthLabel = formatMonthYear(updated.month, updated.year, language);
+    const categoryLabel = getCategoryLabel(language, updated.category?.name ?? null);
+
+    const reply =
+      language === 'vi'
+        ? `Đã tăng thêm ${incrementLabel} cho giới hạn ${categoryLabel} trong ${monthLabel}. Giới hạn mới là ${newLimitLabel}.`
+        : `Added ${incrementLabel} to the ${categoryLabel} budget for ${monthLabel}. The new limit is ${newLimitLabel}.`;
+
+    return {
+      reply,
+      intent: 'set_budget',
+      data: { budget: updated },
     };
   }
 
@@ -789,4 +1012,10 @@ export class AgentService {
   }
 
 }
+
+
+
+
+
+
 

@@ -1,4 +1,4 @@
-import { AgentPayload, Intent } from '@expense-ai/shared';
+﻿import { AgentActionOption, AgentPayload, Intent } from '@expense-ai/shared';
 
 export type AgentIntent = Intent | 'clarify' | 'error';
 
@@ -8,5 +8,6 @@ export interface AgentChatResult {
   parsed?: AgentPayload;
   data?: unknown;
   meta?: Record<string, unknown>;
+  actions?: AgentActionOption[];
   error?: string;
 }
