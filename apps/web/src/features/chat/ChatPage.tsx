@@ -1,41 +1,41 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChatBubble } from "./components/ChatBubble";
-import { ChatComposer } from "./components/ChatComposer";
-import { AgentChatResponse, ChatMessageDto } from "../../api/types";
-import { AgentActionOption } from "@expense-ai/shared";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
+import { ChatBubble } from './components/ChatBubble';
+import { ChatComposer } from './components/ChatComposer';
+import { AgentChatResponse, ChatMessageDto, ChatHistoryResponse } from '../../api/types';
+import { AgentActionOption } from '@expense-ai/shared';
 
-import { apiClient, extractErrorMessage, isNetworkError } from "../../api/client";
-import { enqueueAgentMessage } from "../../offline/offlineQueue";
-import { useOfflineAgentSync } from "../../offline/useOfflineAgentSync";
-import { useOnlineStatus } from "../../hooks/useOnlineStatus";
-import "./components/chat.css";
+import { apiClient, extractErrorMessage, isNetworkError } from '../../api/client';
+import { enqueueAgentMessage } from '../../offline/offlineQueue';
+import { useOfflineAgentSync } from '../../offline/useOfflineAgentSync';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import './components/chat.css';
 
 interface ChatMessageItem {
   id: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  status: "sent" | "pending" | "queued" | "error";
+  status: 'sent' | 'pending' | 'queued' | 'error';
   localOnly?: boolean;
   actions?: AgentActionOption[];
   actionProcessing?: boolean;
 }
 const SUGGESTIONS = [
-  "Xem bao cao chi tieu thang nay",
-  "Dat ngan sach an uong 2.000.000 VND cho thang nay",
-  "Ghi nhan khoan thu 25.000.000 VND trong thang nay",
-  "Toi da chi bao nhieu cho di chuyen tuan nay?",
+  'Xem báo cáo chi tiêu tháng này',
+  'Đặt nguồn ngân sách ăn uống 2.000.000 VND cho tháng này',
+  'Ghi nhận khoản thu 25.000.000 VND trong tháng này',
+  'Tôi đã chi bao nhiêu cho di chuyển tuần này?',
 ];
 
 function createMessage(
-  role: "user" | "assistant",
+  role: 'user' | 'assistant',
   content: string,
-  status: ChatMessageItem["status"] = "sent",
+  status: ChatMessageItem['status'] = 'sent',
   overrides: Partial<ChatMessageItem> = {},
 ): ChatMessageItem {
   const id =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -61,47 +61,152 @@ function mapServerMessage(message: ChatMessageDto): ChatMessageItem {
 
 export function ChatPage() {
   const [pendingMessages, setPendingMessages] = useState<ChatMessageItem[]>([]);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const scrollPositionRef = useRef<{ height: number; top: number } | null>(null);
+  const hasInitiallyLoaded = useRef(false);
   const online = useOnlineStatus();
+
+  // Reset initial load flag when component mounts (for reload)
+  useEffect(() => {
+    hasInitiallyLoaded.current = false;
+  }, []);
 
   const {
     data: historyData,
     isLoading: historyLoading,
     isFetching: historyFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch: refetchHistory,
-  } = useQuery({
-    queryKey: ["chat-history"],
-    queryFn: async () => {
-      const { data } = await apiClient.get<ChatMessageDto[]>("/agent/history", {
-        params: { limit: 200 },
+  } = useInfiniteQuery({
+    queryKey: ['chat-history'],
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      const { data } = await apiClient.get<ChatHistoryResponse>('/agent/history', {
+        params: {
+          limit: 20,
+          ...(pageParam && { cursor: pageParam }),
+        },
       });
       return data;
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: "always",
+    refetchOnMount: 'always',
   });
 
-  const historyMessages = useMemo(
-    () => (historyData ?? []).map(mapServerMessage),
-    [historyData],
-  );
+  const historyMessages = useMemo(() => {
+    if (!historyData?.pages) return [];
+    return historyData.pages.flatMap((page) => page.data.map(mapServerMessage));
+  }, [historyData]);
 
   const combinedMessages = useMemo(
     () => [...historyMessages, ...pendingMessages],
     [historyMessages, pendingMessages],
   );
 
+  // Auto-scroll to bottom only on initial load
   useEffect(() => {
     if (!listRef.current) return;
-    listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [combinedMessages]);
+
+    // Scroll to bottom on initial load - wait for all data to be loaded
+    if (!hasInitiallyLoaded.current && !historyLoading && historyData && !isFetchingNextPage) {
+      hasInitiallyLoaded.current = true;
+
+      // Use multiple attempts to ensure we scroll to the very bottom
+      const scrollToBottom = () => {
+        if (listRef.current) {
+          const element = listRef.current;
+          element.scrollTop = element.scrollHeight;
+        }
+      };
+
+      // Immediate scroll
+      scrollToBottom();
+
+      // Additional attempts with longer delays
+      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 150);
+      setTimeout(scrollToBottom, 300);
+    }
+  }, [historyLoading, historyData, isFetchingNextPage]);
+
+  // Handle infinite scroll and scroll button visibility
+  useEffect(() => {
+    const listElement = listRef.current;
+    if (!listElement) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = listElement;
+      const isNearTop = scrollTop < 100;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+      // Show scroll button when user is not near bottom
+      setShowScrollButton(!isNearBottom);
+
+      // Only trigger infinite scroll if we've initially loaded and user is scrolling up
+      if (isNearTop && hasNextPage && !isFetchingNextPage && hasInitiallyLoaded.current) {
+        // Store current scroll position before fetching
+        scrollPositionRef.current = {
+          height: listElement.scrollHeight,
+          top: listElement.scrollTop,
+        };
+
+        fetchNextPage();
+      }
+    };
+
+    listElement.addEventListener('scroll', handleScroll);
+    return () => listElement.removeEventListener('scroll', handleScroll);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Restore scroll position after history is loaded
+  useEffect(() => {
+    if (!listRef.current || !scrollPositionRef.current) return;
+
+    const listElement = listRef.current;
+    const { height: oldHeight, top: oldTop } = scrollPositionRef.current;
+
+    // Calculate new scroll position
+    const newHeight = listElement.scrollHeight;
+    const heightDifference = newHeight - oldHeight;
+    const newTop = oldTop + heightDifference;
+
+    listElement.scrollTop = newTop;
+    scrollPositionRef.current = null; // Reset after use
+  }, [historyData]);
+
+  // Only scroll to bottom on initial load, not when loading more history
+  useEffect(() => {
+    if (!listRef.current || !hasInitiallyLoaded.current) return;
+
+    // Only scroll to bottom if we just finished initial load and have pending messages
+    const hasNewPendingMessages = pendingMessages.some(
+      (msg) => msg.localOnly && (msg.status === 'pending' || msg.status === 'queued'),
+    );
+
+    if (hasNewPendingMessages) {
+      const scrollToBottom = () => {
+        if (listRef.current) {
+          const element = listRef.current;
+          element.scrollTop = element.scrollHeight;
+        }
+      };
+
+      // Immediate scroll
+      scrollToBottom();
+
+      // Additional attempt to ensure we reach the bottom
+      setTimeout(scrollToBottom, 50);
+    }
+  }, [pendingMessages]);
 
   useEffect(() => {
     if (!historyFetching) {
-      setPendingMessages((prev) =>
-        prev.filter((msg) => !(msg.localOnly && msg.status === "sent")),
-      );
+      setPendingMessages((prev) => prev.filter((msg) => !(msg.localOnly && msg.status === 'sent')));
     }
   }, [historyFetching, historyData]);
 
@@ -116,15 +221,33 @@ export function ChatPage() {
     [],
   );
 
+  const scrollToBottom = useCallback(() => {
+    if (listRef.current) {
+      const element = listRef.current;
+      element.scrollTop = element.scrollHeight;
+      setShowScrollButton(false);
+    }
+  }, []);
+
   const handleOfflineSync = useCallback(
-    ({ messageId, response, error }: { messageId: string; response?: AgentChatResponse; error?: string }) => {
+    ({
+      messageId,
+      response,
+      error,
+    }: {
+      messageId: string;
+      response?: AgentChatResponse;
+      error?: string;
+    }) => {
       if (response) {
-        updatePendingMessage(messageId, (msg) => ({ ...msg, status: "sent" }));
+        updatePendingMessage(messageId, (msg) => ({ ...msg, status: 'sent' }));
         setPendingMessages((prev) =>
-          prev.filter((msg) => !(msg.localOnly && msg.role === "assistant" && msg.status === "queued")),
+          prev.filter(
+            (msg) => !(msg.localOnly && msg.role === 'assistant' && msg.status === 'queued'),
+          ),
         );
         addPendingMessage(
-          createMessage("assistant", response.reply, "sent", {
+          createMessage('assistant', response.reply, 'sent', {
             localOnly: true,
             actions: response.actions ?? undefined,
           }),
@@ -133,8 +256,8 @@ export function ChatPage() {
           void refetchHistory();
         }
       } else if (error) {
-        updatePendingMessage(messageId, (msg) => ({ ...msg, status: "error" }));
-        addPendingMessage(createMessage("assistant", error, "error", { localOnly: true }));
+        updatePendingMessage(messageId, (msg) => ({ ...msg, status: 'error' }));
+        addPendingMessage(createMessage('assistant', error, 'error', { localOnly: true }));
       }
     },
     [addPendingMessage, refetchHistory, updatePendingMessage],
@@ -144,26 +267,30 @@ export function ChatPage() {
 
   const { mutateAsync: sendToAgent, isPending } = useMutation({
     mutationFn: async (payload: { message: string }) => {
-      const { data } = await apiClient.post<AgentChatResponse>("/agent/chat", payload);
+      const { data } = await apiClient.post<AgentChatResponse>('/agent/chat', payload);
       return data;
     },
   });
 
   const handleSend = useCallback(
     async (text: string) => {
-      const outgoing = createMessage("user", text, online ? "pending" : "queued", {
+      const outgoing = createMessage('user', text, online ? 'pending' : 'queued', {
         localOnly: true,
       });
       addPendingMessage(outgoing);
 
       if (!online) {
-        await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
-        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
+        await enqueueAgentMessage({
+          id: outgoing.id,
+          message: text,
+          createdAt: new Date().toISOString(),
+        });
+        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'queued' }));
         addPendingMessage(
           createMessage(
-            "assistant",
-            "ÄÃ£ lÆ°u tin nháº¯n, mÃ¬nh sáº½ xá»­ lÃ½ khi báº¡n trá»±c tuyáº¿n láº¡i.",
-            "queued",
+            'assistant',
+            'Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.',
+            'queued',
             { localOnly: true },
           ),
         );
@@ -172,9 +299,9 @@ export function ChatPage() {
 
       try {
         const response = await sendToAgent({ message: text });
-        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "sent" }));
+        updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'sent' }));
         addPendingMessage(
-          createMessage("assistant", response.reply, "sent", {
+          createMessage('assistant', response.reply, 'sent', {
             localOnly: true,
             actions: response.actions ?? undefined,
           }),
@@ -185,20 +312,24 @@ export function ChatPage() {
       } catch (error) {
         const offlineError = isNetworkError(error) || navigator.onLine === false;
         if (offlineError) {
-          await enqueueAgentMessage({ id: outgoing.id, message: text, createdAt: new Date().toISOString() });
-          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "queued" }));
+          await enqueueAgentMessage({
+            id: outgoing.id,
+            message: text,
+            createdAt: new Date().toISOString(),
+          });
+          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'queued' }));
           addPendingMessage(
             createMessage(
-              "assistant",
-              "ÄÃ£ lÆ°u tin nháº¯n, mÃ¬nh sáº½ xá»­ lÃ½ khi báº¡n trá»±c tuyáº¿n láº¡i.",
-              "queued",
+              'assistant',
+              'Đã lưu tin nhắn, mình sẽ xử lý khi bạn trực tuyến lại.',
+              'queued',
               { localOnly: true },
             ),
           );
         } else {
-          const message = extractErrorMessage(error, "KhÃ´ng thá»ƒ gá»­i tin nháº¯n.");
-          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: "error" }));
-          addPendingMessage(createMessage("assistant", message, "error", { localOnly: true }));
+          const message = extractErrorMessage(error, 'Không thể gửi tin nhắn.');
+          updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'error' }));
+          addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
         }
       }
     },
@@ -209,34 +340,35 @@ export function ChatPage() {
     async (sourceMessageId: string, action: AgentActionOption) => {
       updatePendingMessage(sourceMessageId, (msg) => ({ ...msg, actionProcessing: true }));
 
-      const userActionMessage = createMessage("user", action.label, "pending", { localOnly: true });
+      const userActionMessage = createMessage('user', action.label, 'pending', { localOnly: true });
       addPendingMessage(userActionMessage);
 
       if (!online) {
-        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: "error" }));
+        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: 'error' }));
         updatePendingMessage(sourceMessageId, (msg) => ({ ...msg, actionProcessing: false }));
         addPendingMessage(
-          createMessage(
-            "assistant",
-            "Khong the xu ly khi dang ngoai tuyen.",
-            "error",
-            { localOnly: true },
-          ),
+          createMessage('assistant', 'Không thể xử lý khi đang ngoại tuyến.', 'error', {
+            localOnly: true,
+          }),
         );
         return;
       }
 
       try {
-        const { data } = await apiClient.post<AgentChatResponse>("/agent/action", {
+        const { data } = await apiClient.post<AgentChatResponse>('/agent/action', {
           actionId: action.id,
           label: action.label,
           payload: action.payload,
         });
 
-        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: "sent" }));
-        updatePendingMessage(sourceMessageId, (msg) => ({ ...msg, actions: [], actionProcessing: false }));
+        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: 'sent' }));
+        updatePendingMessage(sourceMessageId, (msg) => ({
+          ...msg,
+          actions: [],
+          actionProcessing: false,
+        }));
         addPendingMessage(
-          createMessage("assistant", data.reply, "sent", {
+          createMessage('assistant', data.reply, 'sent', {
             localOnly: true,
             actions: data.actions ?? undefined,
           }),
@@ -246,10 +378,10 @@ export function ChatPage() {
           await refetchHistory();
         }
       } catch (error) {
-        const message = extractErrorMessage(error, "Khong the xu ly yeu cau ngay luc nay.");
-        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: "error" }));
+        const message = extractErrorMessage(error, 'Không thể xử lý yêu cầu ngay lúc này.');
+        updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: 'error' }));
         updatePendingMessage(sourceMessageId, (msg) => ({ ...msg, actionProcessing: false }));
-        addPendingMessage(createMessage("assistant", message, "error", { localOnly: true }));
+        addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
       }
     },
     [addPendingMessage, online, refetchHistory, updatePendingMessage],
@@ -257,7 +389,12 @@ export function ChatPage() {
   const suggestionButtons = useMemo(
     () =>
       SUGGESTIONS.map((item) => (
-        <button key={item} className="quick-action" onClick={() => handleSend(item)} disabled={isPending}>
+        <button
+          key={item}
+          className="quick-action"
+          onClick={() => handleSend(item)}
+          disabled={isPending}
+        >
           {item}
         </button>
       )),
@@ -270,17 +407,23 @@ export function ChatPage() {
     <div className="chat-container">
       <header className="chat-header">
         <div>
-          <h1>Tro chuyen voi tro ly chi tieu</h1>
-          <p className="chat-subtitle">Ghi chep chi tieu, theo doi ngan sach va yeu cau bao cao ngay trong tro chuyen.</p>
-        </div>
-        <div className="chat-status-pill" data-online={online}>
-          <span className="dot" /> {online ? "Truc tuyen" : "Ngoai tuyen"}
+          <h1>Trò chuyện với trợ lý chi tiêu</h1>
+          <p className="chat-subtitle">
+            Ghi chép chi tiêu, theo dõi nguồn ngân sách và yêu cầu báo cáo ngay trong trò chuyện.
+          </p>
         </div>
       </header>
       <div className="chat-messages" ref={listRef}>
+        {isFetchingNextPage && (
+          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+            Đang tải thêm tin nhắn...
+          </div>
+        )}
         {isEmpty ? (
-          <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-            {historyLoading ? "Dang tai lich su hoi thoai..." : "Bat dau bang cau \"Ghi lai khoan tra sua 55k\" de xem tro ly ghi nhan giao dich."}
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            {historyLoading
+              ? 'Đang tải lịch sử hội thoại...'
+              : 'Bắt đầu bằng câu "Ghi lại khoản trách nhiệm 55k" để xem trợ lý ghi nhận giao dịch.'}
           </div>
         ) : (
           combinedMessages.map((message) => (
@@ -288,9 +431,9 @@ export function ChatPage() {
               key={message.id}
               role={message.role}
               status={message.status}
-              timestamp={new Date(message.timestamp).toLocaleTimeString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
+              timestamp={new Date(message.timestamp).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
               })}
             >
               <div>{message.content}</div>
@@ -301,7 +444,7 @@ export function ChatPage() {
                       key={`${message.id}-${action.id}`}
                       className="chat-action-button"
                       onClick={() => handleActionClick(message.id, action)}
-                      disabled={message.actionProcessing || !online || message.status !== "sent"}
+                      disabled={message.actionProcessing || !online || message.status !== 'sent'}
                     >
                       {action.label}
                     </button>
@@ -311,6 +454,17 @@ export function ChatPage() {
             </ChatBubble>
           ))
         )}
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            className="scroll-to-bottom-button"
+            onClick={scrollToBottom}
+            title="Xuống tin nhắn mới nhất"
+          >
+            ↓
+          </button>
+        )}
       </div>
       <div className="chat-input-area">
         <div className="quick-actions">{suggestionButtons}</div>
@@ -319,9 +473,3 @@ export function ChatPage() {
     </div>
   );
 }
-
-
-
-
-
-

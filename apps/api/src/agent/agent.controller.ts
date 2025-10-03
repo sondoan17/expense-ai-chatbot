@@ -12,10 +12,14 @@ export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
   @Get('history')
-  history(@CurrentUser() user: PublicUser, @Query('limit') limit?: string) {
+  history(
+    @CurrentUser() user: PublicUser, 
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string
+  ) {
     const parsed = limit ? Number.parseInt(limit, 10) : undefined;
     const safeLimit = Number.isFinite(parsed) ? parsed : undefined;
-    return this.agentService.getHistory(user, safeLimit);
+    return this.agentService.getHistory(user, safeLimit, cursor);
   }
 
   @Post('chat')

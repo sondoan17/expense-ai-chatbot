@@ -249,21 +249,36 @@ export class AgentService {
     }
   }
 
-  async getHistory(user: PublicUser, limit = 200) {
+  async getHistory(user: PublicUser, limit = 200, cursor?: string) {
     const take = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 500) : 200;
+    
+    const where: { userId: string; createdAt?: { lt: Date } } = { userId: user.id };
+    
+    if (cursor) {
+      where.createdAt = { lt: new Date(cursor) };
+    }
+    
     const messages = await this.prisma.chatMessage.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-      take,
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: take + 1, // Take one extra to check if there are more
     });
 
-    return messages.map((message) => ({
-      id: message.id,
-      role: message.role === ChatRole.USER ? 'user' : 'assistant',
-      status: message.status === ChatMessageStatus.ERROR ? 'error' : 'sent',
-      content: message.content,
-      createdAt: message.createdAt,
-    }));
+    const hasNextPage = messages.length > take;
+    const data = hasNextPage ? messages.slice(0, -1) : messages;
+    const nextCursor = hasNextPage ? data[data.length - 1]?.createdAt.toISOString() : null;
+
+    return {
+      data: data.map((message) => ({
+        id: message.id,
+        role: message.role === ChatRole.USER ? 'user' : 'assistant',
+        status: message.status === ChatMessageStatus.ERROR ? 'error' : 'sent',
+        content: message.content,
+        createdAt: message.createdAt,
+      })),
+      nextCursor,
+      hasNextPage,
+    };
   }
 
   private async persistUserMessage(userId: string, content: string): Promise<void> {

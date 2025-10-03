@@ -46,6 +46,7 @@
   flex-direction: column;
   gap: 1rem;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+  position: relative;
 }
 
 .chat-row {
@@ -264,4 +265,38 @@
 .chat-action-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Scroll to bottom button */
+.scroll-to-bottom-button {
+  position: fixed;
+  bottom: 120px;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-to-bottom-button:hover {
+  background: rgba(129, 140, 248, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.scroll-to-bottom-button:active {
+  transform: translateY(0);
 }

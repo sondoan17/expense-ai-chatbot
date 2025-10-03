@@ -112,6 +112,12 @@ export interface ChatMessageDto {
   createdAt: string;
 }
 
+export interface ChatHistoryResponse {
+  data: ChatMessageDto[];
+  nextCursor: string | null;
+  hasNextPage: boolean;
+}
+
 export interface AgentChatResponse {
   reply: string;
   intent: string;
