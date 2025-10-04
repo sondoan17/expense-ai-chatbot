@@ -8,10 +8,27 @@ import { BudgetsModule } from '../budgets/budgets.module';
 import { ReportsModule } from '../reports/reports.module';
 import { UsersModule } from '../users/users.module';
 import { RecurringModule } from '../recurring/recurring.module';
+import { RecurringBudgetsModule } from '../recurring-budgets/recurring-budgets.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import {
+  BudgetHandlerService,
+  TransactionHandlerService,
+  RecurringHandlerService,
+  QueryHandlerService,
+  CategoryResolverService,
+} from './handlers';
 
 @Module({
-  imports: [ConfigModule, TransactionsModule, BudgetsModule, ReportsModule, UsersModule, RecurringModule],
+  imports: [ConfigModule, PrismaModule, TransactionsModule, BudgetsModule, ReportsModule, UsersModule, RecurringModule, RecurringBudgetsModule],
   controllers: [AgentController],
-  providers: [AgentService, HyperbolicService],
+  providers: [
+    AgentService,
+    HyperbolicService,
+    BudgetHandlerService,
+    TransactionHandlerService,
+    RecurringHandlerService,
+    QueryHandlerService,
+    CategoryResolverService,
+  ],
 })
 export class AgentModule {}

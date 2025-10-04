@@ -1,110 +1,110 @@
-﻿import { z } from "zod";
+﻿import { z } from 'zod';
 
 export enum TimePeriodEnum {
-  Today = "today",
-  Yesterday = "yesterday",
-  ThisWeek = "this_week",
-  ThisMonth = "this_month",
-  LastMonth = "last_month",
-  ThisYear = "this_year",
+  Today = 'today',
+  Yesterday = 'yesterday',
+  ThisWeek = 'this_week',
+  ThisMonth = 'this_month',
+  LastMonth = 'last_month',
+  ThisYear = 'this_year',
 }
 
 export const TIME_PERIOD_VALUES = Object.values(TimePeriodEnum);
 export type TimePeriod = (typeof TIME_PERIOD_VALUES)[number];
 
-export const CURRENCY_VALUES = ["VND", "USD"] as const;
+export const CURRENCY_VALUES = ['VND', 'USD'] as const;
 export type Currency = (typeof CURRENCY_VALUES)[number];
 
-export const TXN_TYPE_VALUES = ["EXPENSE", "INCOME"] as const;
+export const TXN_TYPE_VALUES = ['EXPENSE', 'INCOME'] as const;
 export type TxnType = (typeof TXN_TYPE_VALUES)[number];
 
-export const RECURRING_FREQ_VALUES = ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"] as const;
+export const RECURRING_FREQ_VALUES = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const;
 export type RecurringFreq = (typeof RECURRING_FREQ_VALUES)[number];
 
 export const CANONICAL_CATEGORIES = [
-  "Ăn uống",
-  "Di chuyển",
-  "Nhà ở",
-  "Mua sắm",
-  "Giải trí",
-  "Sức khỏe",
-  "Giáo dục",
-  "Hóa đơn",
-  "Thu nhập",
-  "Khác",
+  'Ăn uống',
+  'Di chuyển',
+  'Nhà ở',
+  'Mua sắm',
+  'Giải trí',
+  'Sức khỏe',
+  'Giáo dục',
+  'Hóa đơn',
+  'Thu nhập',
+  'Khác',
 ] as const;
 
 export const CATEGORY_SYNONYMS: Record<string, (typeof CANONICAL_CATEGORIES)[number]> = {
-  "ăn": "Ăn uống",
-  "ăn uống": "Ăn uống",
-  "ăn sáng": "Ăn uống",
-  "ăn trưa": "Ăn uống",
-  "ăn tối": "Ăn uống",
-  "đồ ăn": "Ăn uống",
-  "đi chợ": "Ăn uống",
-  "cafe": "Ăn uống",
-  "cà phê": "Ăn uống",
-  "coffee": "Ăn uống",
-  "trà sữa": "Ăn uống",
-  "di chuyển": "Di chuyển",
-  "đi lại": "Di chuyển",
-  "grab": "Di chuyển",
-  "taxi": "Di chuyển",
-  "xe ôm": "Di chuyển",
-  "xăng": "Di chuyển",
-  "bus": "Di chuyển",
-  "bến xe": "Di chuyển",
-  "nhà": "Nhà ở",
-  "tiền nhà": "Nhà ở",
-  "thuê nhà": "Nhà ở",
-  "tiền phòng": "Nhà ở",
-  "điện": "Hóa đơn",
-  "nước": "Hóa đơn",
-  "internet": "Hóa đơn",
-  "wifi": "Hóa đơn",
-  "hóa đơn": "Hóa đơn",
-  "truyền hình": "Hóa đơn",
-  "mua sắm": "Mua sắm",
-  "shopping": "Mua sắm",
-  "quần áo": "Mua sắm",
-  "giày dép": "Mua sắm",
-  "phụ kiện": "Mua sắm",
-  "giải trí": "Giải trí",
-  "xem phim": "Giải trí",
-  "game": "Giải trí",
-  "nhạc": "Giải trí",
-  "concert": "Giải trí",
-  "sức khỏe": "Sức khỏe",
-  "y tế": "Sức khỏe",
-  "bệnh viện": "Sức khỏe",
-  "khám": "Sức khỏe",
-  "thuốc": "Sức khỏe",
-  "giáo dục": "Giáo dục",
-  "học phí": "Giáo dục",
-  "khóa học": "Giáo dục",
-  "sách": "Giáo dục",
-  "lớp học": "Giáo dục",
-  "thu nhập": "Thu nhập",
-  "lương": "Thu nhập",
-  "thưởng": "Thu nhập",
-  "lãi": "Thu nhập",
-  "khác": "Khác",
+  ăn: 'Ăn uống',
+  'ăn uống': 'Ăn uống',
+  'ăn sáng': 'Ăn uống',
+  'ăn trưa': 'Ăn uống',
+  'ăn tối': 'Ăn uống',
+  'đồ ăn': 'Ăn uống',
+  'đi chợ': 'Ăn uống',
+  cafe: 'Ăn uống',
+  'cà phê': 'Ăn uống',
+  coffee: 'Ăn uống',
+  'trà sữa': 'Ăn uống',
+  'di chuyển': 'Di chuyển',
+  'đi lại': 'Di chuyển',
+  grab: 'Di chuyển',
+  taxi: 'Di chuyển',
+  'xe ôm': 'Di chuyển',
+  xăng: 'Di chuyển',
+  bus: 'Di chuyển',
+  'bến xe': 'Di chuyển',
+  nhà: 'Nhà ở',
+  'tiền nhà': 'Nhà ở',
+  'thuê nhà': 'Nhà ở',
+  'tiền phòng': 'Nhà ở',
+  điện: 'Hóa đơn',
+  nước: 'Hóa đơn',
+  internet: 'Hóa đơn',
+  wifi: 'Hóa đơn',
+  'hóa đơn': 'Hóa đơn',
+  'truyền hình': 'Hóa đơn',
+  'mua sắm': 'Mua sắm',
+  shopping: 'Mua sắm',
+  'quần áo': 'Mua sắm',
+  'giày dép': 'Mua sắm',
+  'phụ kiện': 'Mua sắm',
+  'giải trí': 'Giải trí',
+  'xem phim': 'Giải trí',
+  game: 'Giải trí',
+  nhạc: 'Giải trí',
+  concert: 'Giải trí',
+  'sức khỏe': 'Sức khỏe',
+  'y tế': 'Sức khỏe',
+  'bệnh viện': 'Sức khỏe',
+  khám: 'Sức khỏe',
+  thuốc: 'Sức khỏe',
+  'giáo dục': 'Giáo dục',
+  'học phí': 'Giáo dục',
+  'khóa học': 'Giáo dục',
+  sách: 'Giáo dục',
+  'lớp học': 'Giáo dục',
+  'thu nhập': 'Thu nhập',
+  lương: 'Thu nhập',
+  thưởng: 'Thu nhập',
+  lãi: 'Thu nhập',
+  khác: 'Khác',
 };
 
 export function normalizeVietnamese(input: string): string {
   return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\u0111/g, "d")
-    .replace(/\u0110/g, "D");
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u0111/g, 'd')
+    .replace(/\u0110/g, 'D');
 }
 
 export function normalizeText(input: string): string {
   return normalizeVietnamese(input)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim()
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, ' ');
 }
 
 const CATEGORY_LOOKUP = new Map<string, (typeof CANONICAL_CATEGORIES)[number]>();
@@ -203,21 +203,22 @@ export function resolveCategoryName(
 }
 
 export const IntentSchema = z.enum([
-  "add_expense",
-  "add_income",
-  "query_total",
-  "query_by_category",
-  "set_budget",
-  "get_budget_status",
-  "list_recent",
-  "undo_or_delete",
-  "small_talk",
-  "set_recurring",
+  'add_expense',
+  'add_income',
+  'query_total',
+  'query_by_category',
+  'set_budget',
+  'get_budget_status',
+  'list_recent',
+  'undo_or_delete',
+  'small_talk',
+  'set_recurring',
+  'set_recurring_budget',
 ]);
 
 export const AgentPayloadSchema = z.object({
   intent: IntentSchema,
-  language: z.enum(["vi", "en"]).default("vi"),
+  language: z.enum(['vi', 'en']).default('vi'),
   amount: z.number().optional(),
   currency: z.enum(CURRENCY_VALUES).optional(),
   category: z.string().optional(),
@@ -247,8 +248,3 @@ export interface AgentActionOption {
   label: string;
   payload: Record<string, unknown>;
 }
-
-
-
-
-

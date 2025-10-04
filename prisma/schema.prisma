@@ -36,26 +36,27 @@ enum ChatMessageStatus {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  passwordHash  String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  transactions  Transaction[]
-  budgets       Budget[]
-  chatMessages  ChatMessage[]
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  budgets      Budget[]
+  chatMessages ChatMessage[]
 }
 
 model Category {
-  id        String        @id @default(cuid())
-  name      String        @unique
-  icon      String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  txns      Transaction[]
-  budgets   Budget[]
-  recurringRules RecurringRule[]
+  id                   String                @id @default(cuid())
+  name                 String                @unique
+  icon                 String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  txns                 Transaction[]
+  budgets              Budget[]
+  recurringRules       RecurringRule[]
+  recurringBudgetRules RecurringBudgetRule[]
 }
 
 model Transaction {
@@ -78,41 +79,41 @@ model Transaction {
 }
 
 model RecurringRule {
-  id            String        @id @default(cuid())
-  userId        String
-  enabled       Boolean       @default(true)
-  freq          RecurringFreq
-  dayOfMonth    Int?
-  weekday       Int?
-  timeOfDay     String
-  timezone      String
-  startDate     DateTime
-  endDate       DateTime?
-  type          TxnType
-  amount        Decimal       @db.Decimal(18, 2)
-  currency      Currency      @default(VND)
-  categoryId    String?
-  category      Category?     @relation(fields: [categoryId], references: [id])
-  note          String?
-  nextRunAt     DateTime
-  lastRunAt     DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  runLogs       RecurringRunLog[]
+  id         String            @id @default(cuid())
+  userId     String
+  enabled    Boolean           @default(true)
+  freq       RecurringFreq
+  dayOfMonth Int?
+  weekday    Int?
+  timeOfDay  String
+  timezone   String
+  startDate  DateTime
+  endDate    DateTime?
+  type       TxnType
+  amount     Decimal           @db.Decimal(18, 2)
+  currency   Currency          @default(VND)
+  categoryId String?
+  category   Category?         @relation(fields: [categoryId], references: [id])
+  note       String?
+  nextRunAt  DateTime
+  lastRunAt  DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  runLogs    RecurringRunLog[]
 
   @@index([userId, enabled, nextRunAt])
   @@index([categoryId])
 }
 
 model RecurringRunLog {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   recurringRuleId String
   recurringRule   RecurringRule @relation(fields: [recurringRuleId], references: [id])
   occurredDate    DateTime
   txnId           String?
   status          String
   message         String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime      @default(now())
 
   @@unique([recurringRuleId, occurredDate])
 }
@@ -121,26 +122,65 @@ model Budget {
   id          String    @id @default(cuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id])
-  month       Int       // 1..12
+  month       Int // 1..12
   year        Int
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id])
-  limitAmount Decimal    @db.Decimal(18, 2)
-  currency    Currency   @default(VND)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  limitAmount Decimal   @db.Decimal(18, 2)
+  currency    Currency  @default(VND)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([userId, year, month, categoryId])
 }
 
+model RecurringBudgetRule {
+  id         String                  @id @default(cuid())
+  userId     String
+  enabled    Boolean                 @default(true)
+  freq       RecurringFreq
+  dayOfMonth Int?
+  weekday    Int?
+  timeOfDay  String
+  timezone   String
+  startDate  DateTime
+  endDate    DateTime?
+  amount     Decimal                 @db.Decimal(18, 2)
+  currency   Currency                @default(VND)
+  categoryId String?
+  category   Category?               @relation(fields: [categoryId], references: [id])
+  note       String?
+  nextRunAt  DateTime
+  lastRunAt  DateTime?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  runLogs    RecurringBudgetRunLog[]
+
+  @@index([userId, enabled, nextRunAt])
+  @@index([categoryId])
+}
+
+model RecurringBudgetRunLog {
+  id                    String              @id @default(cuid())
+  recurringBudgetRuleId String
+  recurringBudgetRule   RecurringBudgetRule @relation(fields: [recurringBudgetRuleId], references: [id])
+  occurredDate          DateTime
+  budgetId              String?
+  status                String
+  message               String?
+  createdAt             DateTime            @default(now())
+
+  @@unique([recurringBudgetRuleId, occurredDate])
+}
+
 model ChatMessage {
-  id        String             @id @default(cuid())
+  id        String            @id @default(cuid())
   userId    String
-  user      User               @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
   role      ChatRole
-  status    ChatMessageStatus  @default(SENT)
+  status    ChatMessageStatus @default(SENT)
   content   String
-  createdAt DateTime           @default(now())
+  createdAt DateTime          @default(now())
 
   @@index([userId, createdAt])
 }

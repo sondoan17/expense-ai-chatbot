@@ -3,7 +3,7 @@
 export class AgentActionDto {
   @IsString()
   @IsNotEmpty()
-  @IsIn(['set_budget_update', 'set_budget_increase'])
+  @IsIn(['set_budget_update', 'set_budget_increase', 'recurring_budget_update', 'recurring_budget_add'])
   actionId!: string;
 
   @IsString()

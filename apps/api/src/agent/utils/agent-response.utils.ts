@@ -286,6 +286,56 @@ export function buildRecurringRuleUpdatedReply(
   return `I've updated the schedule to record ${action}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
 }
 
+export function buildRecurringBudgetRuleCreatedReply(
+  language: AgentLanguage,
+  params: {
+    amountLabel: string;
+    categoryLabel?: string | null;
+    scheduleLabel: string;
+    timeLabel: string;
+    timezone: string;
+    nextRunLabel: string;
+  },
+): string {
+  const { amountLabel, categoryLabel, scheduleLabel, timeLabel, timezone, nextRunLabel } = params;
+  const categoryClause = categoryLabel
+    ? language === 'vi'
+      ? ` cho ${categoryLabel}`
+      : ` for ${categoryLabel}`
+    : '';
+
+  if (language === 'vi') {
+    return `Mình sẽ tự động tạo ngân sách ${amountLabel}${categoryClause} ${scheduleLabel} lúc ${timeLabel} (lần tiếp theo: ${nextRunLabel}, múi giờ ${timezone}).`;
+  }
+
+  return `I'll automatically create budget ${amountLabel}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
+}
+
+export function buildRecurringBudgetRuleUpdatedReply(
+  language: AgentLanguage,
+  params: {
+    amountLabel: string;
+    categoryLabel?: string | null;
+    scheduleLabel: string;
+    timeLabel: string;
+    timezone: string;
+    nextRunLabel: string;
+  },
+): string {
+  const { amountLabel, categoryLabel, scheduleLabel, timeLabel, timezone, nextRunLabel } = params;
+  const categoryClause = categoryLabel
+    ? language === 'vi'
+      ? ` cho ${categoryLabel}`
+      : ` for ${categoryLabel}`
+    : '';
+
+  if (language === 'vi') {
+    return `Mình đã cập nhật lịch tạo ngân sách ${amountLabel}${categoryClause} ${scheduleLabel} lúc ${timeLabel} (lần tiếp theo: ${nextRunLabel}, múi giờ ${timezone}).`;
+  }
+
+  return `I've updated the schedule to create budget ${amountLabel}${categoryClause} ${scheduleLabel} at ${timeLabel} (next run: ${nextRunLabel}, timezone ${timezone}).`;
+}
+
 export function buildAskBudgetAmountReply(language: AgentLanguage): string {
   return language === 'vi'
     ? 'Bạn muốn đặt ngân sách bao nhiêu? Mình cần số tiền cụ thể nhé.'
