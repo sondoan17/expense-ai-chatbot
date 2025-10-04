@@ -21,6 +21,7 @@ interface ChatMessageItem {
   actions?: AgentActionOption[];
   actionProcessing?: boolean;
 }
+
 const SUGGESTIONS = [
   'Xem báo cáo chi tiêu tháng này',
   'Đặt nguồn ngân sách ăn uống 2.000.000 VND cho tháng này',
@@ -59,6 +60,20 @@ function mapServerMessage(message: ChatMessageDto): ChatMessageItem {
   };
 }
 
+/** ---- Dedupe helpers: fingerprint + time-window (15s) ---- */
+function normalizeText(s: string) {
+  return s.replace(/\s+/g, ' ').trim();
+}
+function fp(role: 'user' | 'assistant', content: string) {
+  return `${role}|${normalizeText(content)}`;
+}
+function toMs(ts: string) {
+  return new Date(ts).getTime();
+}
+function isNear(a: number, b: number, windowMs = 15_000) {
+  return Math.abs(a - b) <= windowMs;
+}
+
 export function ChatPage() {
   const [pendingMessages, setPendingMessages] = useState<ChatMessageItem[]>([]);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -93,9 +108,10 @@ export function ChatPage() {
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     refetchOnMount: 'always',
+    staleTime: 30000,
   });
 
   const historyMessages = useMemo(() => {
@@ -103,34 +119,67 @@ export function ChatPage() {
     return historyData.pages.flatMap((page) => page.data.map(mapServerMessage));
   }, [historyData]);
 
-  const combinedMessages = useMemo(
-    () => [...historyMessages, ...pendingMessages],
-    [historyMessages, pendingMessages],
-  );
+  /** ------- Dedupe theo fingerprint + cửa sổ thời gian ------- */
+  const combinedMessages = useMemo(() => {
+    // server index: fp -> list of timestamps (ms)
+    const serverByFpTimes = new Map<string, number[]>();
+    const byId = new Map<string, ChatMessageItem>();
+
+    for (const m of historyMessages) {
+      byId.set(m.id, m);
+      const key = fp(m.role, m.content);
+      const arr = serverByFpTimes.get(key) ?? [];
+      arr.push(toMs(m.timestamp));
+      serverByFpTimes.set(key, arr);
+    }
+
+    for (const m of pendingMessages) {
+      const key = fp(m.role, m.content);
+      const localMs = toMs(m.timestamp);
+      const times = serverByFpTimes.get(key) ?? [];
+      const hasNear = times.some((t) => isNear(t, localMs));
+      if (hasNear) continue; // đã có bản server tương ứng gần về thời gian -> bỏ local
+      byId.set(m.id, m);
+    }
+
+    return Array.from(byId.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }, [historyMessages, pendingMessages]);
+
+  const scrollToBottom = useCallback(() => {
+    if (listRef.current) {
+      const element = listRef.current;
+      element.scrollTop = element.scrollHeight;
+      setShowScrollButton(false);
+    }
+  }, []);
+
+  const scrollToBottomWithRetry = useCallback(() => {
+    const scroll = () => {
+      if (listRef.current) {
+        const element = listRef.current;
+        element.scrollTop = element.scrollHeight;
+        setShowScrollButton(false);
+      }
+    };
+    scroll();
+    setTimeout(scroll, 50);
+    setTimeout(scroll, 150);
+  }, []);
 
   // Auto-scroll to bottom only on initial load
   useEffect(() => {
     if (!listRef.current) return;
-
-    // Scroll to bottom on initial load - wait for all data to be loaded
     if (!hasInitiallyLoaded.current && !historyLoading && historyData && !isFetchingNextPage) {
       hasInitiallyLoaded.current = true;
-
-      // Use multiple attempts to ensure we scroll to the very bottom
-      const scrollToBottom = () => {
-        if (listRef.current) {
-          const element = listRef.current;
-          element.scrollTop = element.scrollHeight;
-        }
+      const scrollNow = () => {
+        if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
       };
-
-      // Immediate scroll
-      scrollToBottom();
-
-      // Additional attempts with longer delays
-      setTimeout(scrollToBottom, 50);
-      setTimeout(scrollToBottom, 150);
-      setTimeout(scrollToBottom, 300);
+      scrollNow();
+      setTimeout(scrollNow, 50);
+      setTimeout(scrollNow, 150);
+      setTimeout(scrollNow, 300);
     }
   }, [historyLoading, historyData, isFetchingNextPage]);
 
@@ -144,17 +193,14 @@ export function ChatPage() {
       const isNearTop = scrollTop < 100;
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
 
-      // Show scroll button when user is not near bottom
       setShowScrollButton(!isNearBottom);
 
-      // Only trigger infinite scroll if we've initially loaded and user is scrolling up
       if (isNearTop && hasNextPage && !isFetchingNextPage && hasInitiallyLoaded.current) {
         // Store current scroll position before fetching
         scrollPositionRef.current = {
           height: listElement.scrollHeight,
           top: listElement.scrollTop,
         };
-
         fetchNextPage();
       }
     };
@@ -165,50 +211,71 @@ export function ChatPage() {
 
   // Restore scroll position after history is loaded
   useEffect(() => {
-    if (!listRef.current || !scrollPositionRef.current) return;
+    if (!listRef.current || !scrollPositionRef.current || !hasInitiallyLoaded.current) return;
 
     const listElement = listRef.current;
     const { height: oldHeight, top: oldTop } = scrollPositionRef.current;
-
-    // Calculate new scroll position
     const newHeight = listElement.scrollHeight;
-    const heightDifference = newHeight - oldHeight;
-    const newTop = oldTop + heightDifference;
+    const newTop = oldTop + (newHeight - oldHeight);
 
-    listElement.scrollTop = newTop;
-    scrollPositionRef.current = null; // Reset after use
+    requestAnimationFrame(() => {
+      if (listRef.current) listRef.current.scrollTop = newTop;
+    });
+
+    scrollPositionRef.current = null;
   }, [historyData]);
 
-  // Only scroll to bottom on initial load, not when loading more history
+  // Auto-scroll to bottom when new local pending (user/assistant) appears
   useEffect(() => {
     if (!listRef.current || !hasInitiallyLoaded.current) return;
-
-    // Only scroll to bottom if we just finished initial load and have pending messages
-    const hasNewPendingMessages = pendingMessages.some(
+    const hasNewPending = pendingMessages.some(
       (msg) => msg.localOnly && (msg.status === 'pending' || msg.status === 'queued'),
     );
-
-    if (hasNewPendingMessages) {
-      const scrollToBottom = () => {
-        if (listRef.current) {
-          const element = listRef.current;
-          element.scrollTop = element.scrollHeight;
-        }
-      };
-
-      // Immediate scroll
-      scrollToBottom();
-
-      // Additional attempt to ensure we reach the bottom
-      setTimeout(scrollToBottom, 50);
+    if (hasNewPending) {
+      const el = listRef.current;
+      el.scrollTop = el.scrollHeight;
     }
   }, [pendingMessages]);
 
+  /** ------- Cleanup pending dựa vào fingerprint + thời gian ------- */
   useEffect(() => {
-    if (!historyFetching) {
-      setPendingMessages((prev) => prev.filter((msg) => !(msg.localOnly && msg.status === 'sent')));
+    if (!historyFetching && historyMessages.length > 0) {
+      // server index: fp -> list timestamps (ms)
+      const serverByFpTimes = new Map<string, number[]>();
+      for (const h of historyMessages) {
+        const key = fp(h.role, h.content);
+        const arr = serverByFpTimes.get(key) ?? [];
+        arr.push(toMs(h.timestamp));
+        serverByFpTimes.set(key, arr);
+      }
+
+      setPendingMessages((prev) =>
+        prev.filter((msg) => {
+          if (!msg.localOnly) return true; // không phải local thì giữ
+          const key = fp(msg.role, msg.content);
+          const times = serverByFpTimes.get(key) ?? [];
+          const localMs = toMs(msg.timestamp);
+          const hasNear = times.some((t) => isNear(t, localMs));
+          return !hasNear; // có bản server “gần” -> bỏ local
+        }),
+      );
     }
-  }, [historyFetching, historyData]);
+  }, [historyFetching, historyMessages]);
+
+  // Auto-scroll to bottom when very recent server messages arrive
+  useEffect(() => {
+    if (!listRef.current || !hasInitiallyLoaded.current || historyFetching) return;
+
+    const latestPage = historyData?.pages?.[historyData.pages.length - 1];
+    if (latestPage?.data?.length) {
+      const latestMessage = latestPage.data[latestPage.data.length - 1];
+      const messageTime = new Date(latestMessage.createdAt).getTime();
+      const now = Date.now();
+      if (now - messageTime < 10_000) {
+        scrollToBottomWithRetry();
+      }
+    }
+  }, [historyData, historyFetching, scrollToBottomWithRetry]);
 
   const addPendingMessage = useCallback((msg: ChatMessageItem) => {
     setPendingMessages((prev) => [...prev, msg]);
@@ -220,14 +287,6 @@ export function ChatPage() {
     },
     [],
   );
-
-  const scrollToBottom = useCallback(() => {
-    if (listRef.current) {
-      const element = listRef.current;
-      element.scrollTop = element.scrollHeight;
-      setShowScrollButton(false);
-    }
-  }, []);
 
   const handleOfflineSync = useCallback(
     ({
@@ -246,13 +305,15 @@ export function ChatPage() {
             (msg) => !(msg.localOnly && msg.role === 'assistant' && msg.status === 'queued'),
           ),
         );
-        addPendingMessage(
-          createMessage('assistant', response.reply, 'sent', {
-            localOnly: true,
-            actions: response.actions ?? undefined,
-          }),
-        );
-        if (!response.actions?.length) {
+        // Chỉ echo assistant local khi có actions; nếu không, đợi history
+        if (response.actions?.length) {
+          addPendingMessage(
+            createMessage('assistant', response.reply, 'sent', {
+              localOnly: true,
+              actions: response.actions ?? undefined,
+            }),
+          );
+        } else {
           void refetchHistory();
         }
       } else if (error) {
@@ -274,11 +335,13 @@ export function ChatPage() {
 
   const handleSend = useCallback(
     async (text: string) => {
+      // 1) Hiển thị ngay bong bóng user local
       const outgoing = createMessage('user', text, online ? 'pending' : 'queued', {
         localOnly: true,
       });
       addPendingMessage(outgoing);
 
+      // 2) Nếu offline: xếp hàng & báo lại
       if (!online) {
         await enqueueAgentMessage({
           id: outgoing.id,
@@ -297,17 +360,23 @@ export function ChatPage() {
         return;
       }
 
+      // 3) Online: gửi server
       try {
         const response = await sendToAgent({ message: text });
         updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'sent' }));
-        addPendingMessage(
-          createMessage('assistant', response.reply, 'sent', {
-            localOnly: true,
-            actions: response.actions ?? undefined,
-          }),
-        );
-        if (!response.actions?.length) {
+
+        // Không xoá bong bóng user local tại đây!
+        // Nếu có actions -> echo assistant local; nếu không -> chỉ refetch history
+        if (response.actions?.length) {
+          addPendingMessage(
+            createMessage('assistant', response.reply, 'sent', {
+              localOnly: true,
+              actions: response.actions,
+            }),
+          );
+        } else {
           await refetchHistory();
+          scrollToBottomWithRetry();
         }
       } catch (error) {
         const offlineError = isNetworkError(error) || navigator.onLine === false;
@@ -333,7 +402,7 @@ export function ChatPage() {
         }
       }
     },
-    [addPendingMessage, online, refetchHistory, sendToAgent, updatePendingMessage],
+    [addPendingMessage, online, refetchHistory, sendToAgent, updatePendingMessage, scrollToBottomWithRetry],
   );
 
   const handleActionClick = useCallback(
@@ -367,15 +436,17 @@ export function ChatPage() {
           actions: [],
           actionProcessing: false,
         }));
-        addPendingMessage(
-          createMessage('assistant', data.reply, 'sent', {
-            localOnly: true,
-            actions: data.actions ?? undefined,
-          }),
-        );
 
-        if (!data.actions?.length) {
+        if (data.actions?.length) {
+          addPendingMessage(
+            createMessage('assistant', data.reply, 'sent', {
+              localOnly: true,
+              actions: data.actions,
+            }),
+          );
+        } else {
           await refetchHistory();
+          scrollToBottomWithRetry();
         }
       } catch (error) {
         const message = extractErrorMessage(error, 'Không thể xử lý yêu cầu ngay lúc này.');
@@ -384,8 +455,9 @@ export function ChatPage() {
         addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
       }
     },
-    [addPendingMessage, online, refetchHistory, updatePendingMessage],
+    [addPendingMessage, online, refetchHistory, updatePendingMessage, scrollToBottomWithRetry],
   );
+
   const suggestionButtons = useMemo(
     () =>
       SUGGESTIONS.map((item) => (

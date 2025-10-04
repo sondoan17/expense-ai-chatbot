@@ -266,10 +266,16 @@ export class AgentService {
 
     const hasNextPage = messages.length > take;
     const data = hasNextPage ? messages.slice(0, -1) : messages;
-    const nextCursor = hasNextPage ? data[data.length - 1]?.createdAt.toISOString() : null;
+    
+    // For cursor-based pagination with DESC order, nextCursor should be the oldest message's timestamp
+    // Since we're ordering by DESC, the last item in data is the oldest
+    const nextCursor = hasNextPage && data.length > 0 ? data[data.length - 1]?.createdAt.toISOString() : null;
+
+    // Reverse the data to show oldest first (for proper chat display)
+    const reversedData = data.reverse();
 
     return {
-      data: data.map((message) => ({
+      data: reversedData.map((message) => ({
         id: message.id,
         role: message.role === ChatRole.USER ? 'user' : 'assistant',
         status: message.status === ChatMessageStatus.ERROR ? 'error' : 'sent',
