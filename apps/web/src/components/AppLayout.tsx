@@ -12,8 +12,8 @@ export function AppLayout() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <span className="sidebar-logo">EA</span>
-          <h2>Expense AI</h2>
+          <span className="sidebar-logo">MM</span>
+          <h2>Mimi</h2>
           <p>Trợ lý tài chính cá nhân</p>
         </div>
         <nav className="sidebar-nav">

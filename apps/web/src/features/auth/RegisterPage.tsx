@@ -25,9 +25,9 @@ export function RegisterPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-badge">Expense AI</span>
+          <span className="auth-badge">Mimi</span>
           <h1>Tạo tài khoản mới</h1>
-          <p>Đăng ký để bắt đầu theo dõi chi tiêu với trợ lý Expense AI.</p>
+          <p>Đăng ký để bắt đầu theo dõi chi tiêu với trợ lý Mimi.</p>
         </div>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>

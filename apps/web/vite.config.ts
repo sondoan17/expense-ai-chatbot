@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "Expense AI Chatbot",
-        short_name: "ExpenseAI",
+        name: "Mimi",
+        short_name: "Mimi",
         description: "Assistant quản lý chi tiêu cá nhân",
         theme_color: "#0f172a",
         background_color: "#0f172a",
@@ -35,7 +35,7 @@ export default defineConfig({
             urlPattern: /\/api\//,
             handler: "NetworkFirst",
             options: {
-              cacheName: "expense-ai-api",
+              cacheName: "mimi-api",
               networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [200] },
             },

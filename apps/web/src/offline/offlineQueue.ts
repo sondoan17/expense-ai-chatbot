@@ -9,7 +9,7 @@ interface AgentQueueItem {
 }
 
 const store = localforage.createInstance({
-  name: 'expense-ai',
+  name: 'mimi',
   storeName: 'offline-queue',
 });
 

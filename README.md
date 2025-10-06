@@ -1,6 +1,6 @@
-﻿# Expense AI Chatbot
+﻿# Mimi
 
-Expense AI is a production-style side project that combines a chat-first experience with a full NestJS backend. Users can capture expenses, incomes, budgets, and recurring rules in natural Vietnamese or English, while still getting traditional dashboards and reports.
+Mimi is a production-style side project that combines a chat-first experience with a full NestJS backend. Users can capture expenses, incomes, budgets, and recurring rules in natural Vietnamese or English, while still getting traditional dashboards and reports.
 
 ## Highlights
 

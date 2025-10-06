@@ -1,4 +1,4 @@
-﻿# AGENTS.md - Expense AI Chat Agent
+﻿# AGENTS.md - Mimi Chat Agent
 
 ## Role
 

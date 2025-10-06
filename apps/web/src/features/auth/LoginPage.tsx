@@ -24,7 +24,7 @@ export function LoginPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-badge">Expense AI</span>
+          <span className="auth-badge">Mimi</span>
           <h1>Chào mừng trở lại</h1>
           <p>Đăng nhập bằng email và mật khẩu để trò chuyện với trợ lý chi tiêu.</p>
         </div>
