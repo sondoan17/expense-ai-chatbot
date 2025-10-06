@@ -37,7 +37,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
   };
 
   return (
-    <form className="chat-composer" onSubmit={handleSubmit}>
+    <form className="flex items-end gap-3" onSubmit={handleSubmit}>
       <textarea
         ref={textareaRef}
         value={value}
@@ -46,8 +46,13 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
         placeholder="Nhập tin nhắn cho trợ lý..."
         disabled={disabled}
         rows={1}
+        className="w-full min-h-[64px] max-h-[200px] resize-none overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900/60 px-4 py-3 text-slate-100 placeholder:text-slate-500 transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 disabled:opacity-65"
       />
-      <button type="submit" disabled={disabled || !value.trim()}>
+      <button
+        type="submit"
+        disabled={disabled || !value.trim()}
+        className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 px-4 py-3 font-semibold text-slate-900 shadow-[0_18px_32px_-12px_rgba(14,165,233,0.35)] transition hover:translate-y-[-1px] hover:shadow-[0_22px_40px_-10px_rgba(14,165,233,0.45)] disabled:opacity-60 disabled:cursor-not-allowed"
+      >
         <Send size={18} /> Gửi
       </button>
     </form>

@@ -119,7 +119,7 @@ export class TransactionsService {
       };
     }
 
-    const [totalsByType, totalsByCategory] = await this.prisma.$transaction([
+    const [totalsByType, totalsByExpenseCategory, totalTxnCount] = await this.prisma.$transaction([
       this.prisma.transaction.groupBy({
         by: ["type"],
         where,
@@ -130,11 +130,13 @@ export class TransactionsService {
         by: ["categoryId"],
         where: {
           ...where,
+          type: TxnType.EXPENSE,
           categoryId: { not: null },
         },
         orderBy: { categoryId: "asc" },
         _sum: { amount: true },
       }),
+      this.prisma.transaction.count({ where }),
     ]);
 
     const expenseGroup = totalsByType.find((item) => item.type === TxnType.EXPENSE);
@@ -143,7 +145,7 @@ export class TransactionsService {
     const expenseTotal = expenseGroup?._sum?.amount ? expenseGroup._sum.amount.toNumber() : 0;
     const incomeTotal = incomeGroup?._sum?.amount ? incomeGroup._sum.amount.toNumber() : 0;
 
-    const categoryIds = totalsByCategory
+    const categoryIds = totalsByExpenseCategory
       .map((group) => group.categoryId)
       .filter((value): value is string => Boolean(value));
 
@@ -155,7 +157,7 @@ export class TransactionsService {
 
     const categoryMap = new Map(categories.map((item) => [item.id, item]));
 
-    const byCategory = totalsByCategory
+    const byCategory = totalsByExpenseCategory
       .filter((group) => group.categoryId)
       .map((group) => {
         const sumAmount = group._sum?.amount ? group._sum.amount.toNumber() : 0;
@@ -168,6 +170,53 @@ export class TransactionsService {
       })
       .sort((a, b) => b.amount - a.amount);
 
+    // Compute additional analytics on server side
+    // Fetch expense transactions (minimal fields) within range to compute day-based metrics
+    const expenseTxns = await this.prisma.transaction.findMany({
+      where: { ...where, type: TxnType.EXPENSE },
+      select: { amount: true, occurredAt: true },
+      orderBy: { occurredAt: "asc" },
+    });
+
+    // transactionCount: all transactions in range
+    const transactionCount = totalTxnCount;
+
+    // activeDays, noSpendDays, maxExpenseDay, avgExpensePerTransaction
+    const expenseCount = expenseTxns.length;
+    const totalExpenseAmount = expenseTxns.reduce((sum, t) => sum + t.amount.toNumber(), 0);
+    const avgExpensePerTransaction = expenseCount > 0 ? totalExpenseAmount / expenseCount : 0;
+
+    const byDay = new Map<string, number>();
+    for (const t of expenseTxns) {
+      const isoLocalDate = DateTime.fromJSDate(t.occurredAt)
+        .setZone(timezone)
+        .toISODate();
+      if (!isoLocalDate) continue;
+      byDay.set(isoLocalDate, (byDay.get(isoLocalDate) ?? 0) + t.amount.toNumber());
+    }
+    const activeDays = byDay.size;
+
+    // Determine number of days in selected range (inclusive) to compute no-spend days
+    let noSpendDays = 0;
+    if (start && end) {
+      // Use local timezone boundaries
+      const startDt = DateTime.fromJSDate(start).setZone(timezone).startOf("day");
+      const endDt = DateTime.fromJSDate(end).setZone(timezone).startOf("day");
+      const totalDaysInRange = Math.max(endDt.diff(startDt, "days").days + 1, 0);
+      noSpendDays = Math.max(totalDaysInRange - activeDays, 0);
+    }
+
+    // Max expense day
+    let maxExpenseDay: { date: string; amount: number } | null = null;
+    for (const [date, amount] of byDay.entries()) {
+      if (!maxExpenseDay || amount > maxExpenseDay.amount) {
+        maxExpenseDay = { date, amount };
+      }
+    }
+
+    // Top category (already sorted byCategory)
+    const topCategory = byCategory.length > 0 ? { name: byCategory[0].categoryName, amount: byCategory[0].amount } : null;
+
     return {
       totals: {
         expense: expenseTotal,
@@ -175,6 +224,13 @@ export class TransactionsService {
         net: incomeTotal - expenseTotal,
       },
       byCategory,
+      // Server-side analytics for dashboard
+      transactionCount,
+      activeDays,
+      noSpendDays,
+      avgExpensePerTransaction,
+      topCategory,
+      maxExpenseDay,
       range: {
         start: start?.toISOString(),
         end: end?.toISOString(),

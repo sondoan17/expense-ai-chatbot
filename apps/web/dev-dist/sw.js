@@ -79,14 +79,14 @@ define(['./workbox-3bc450b4'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.9iirnrt3khg"
+    "revision": "0.cb42cuokr2o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
   workbox.registerRoute(/\/api\//, new workbox.NetworkFirst({
-    "cacheName": "expense-ai-api",
+    "cacheName": "mimi-api",
     "networkTimeoutSeconds": 5,
     plugins: [new workbox.CacheableResponsePlugin({
       statuses: [200]

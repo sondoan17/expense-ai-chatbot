@@ -26,7 +26,6 @@ const SUGGESTIONS = [
   'Xem báo cáo chi tiêu tháng này',
   'Đặt nguồn ngân sách ăn uống 2.000.000 VND cho tháng này',
   'Ghi nhận khoản thu 25.000.000 VND trong tháng này',
-  'Tôi đã chi bao nhiêu cho di chuyển tuần này?',
 ];
 
 function createMessage(
@@ -476,23 +475,23 @@ export function ChatPage() {
   const isEmpty = combinedMessages.length === 0;
 
   return (
-    <div className="chat-container">
-      <header className="chat-header">
+    <div className="grid h-[calc(100vh-120px)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-3xl border border-slate-800/40 bg-slate-900/40 backdrop-blur-xl">
+      <header className="flex items-center justify-between border-b border-slate-700/40 px-5 py-4">
         <div>
-          <h1>Trò chuyện với trợ lý chi tiêu</h1>
-          <p className="chat-subtitle">
+          <h1 className="m-0 text-xl font-semibold tracking-tight">Trò chuyện với trợ lý chi tiêu</h1>
+          <p className="m-0 mt-1 text-sm text-slate-400">
             Ghi chép chi tiêu, theo dõi nguồn ngân sách và yêu cầu báo cáo ngay trong trò chuyện.
           </p>
         </div>
       </header>
-      <div className="chat-messages" ref={listRef}>
+      <div className="relative flex flex-col gap-4 overflow-y-auto bg-gradient-to-b from-slate-900/80 to-slate-900/60 p-5" ref={listRef}>
         {isFetchingNextPage && (
           <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
             Đang tải thêm tin nhắn...
           </div>
         )}
         {isEmpty ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          <div className="empty-state" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
             {historyLoading
               ? 'Đang tải lịch sử hội thoại...'
               : 'Bắt đầu bằng câu "Ghi lại khoản trách nhiệm 55k" để xem trợ lý ghi nhận giao dịch.'}
@@ -510,11 +509,11 @@ export function ChatPage() {
             >
               <div>{message.content}</div>
               {message.actions?.length ? (
-                <div className="chat-bubble-actions">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
                   {message.actions.map((action) => (
                     <button
                       key={`${message.id}-${action.id}`}
-                      className="chat-action-button"
+                      className="rounded-xl bg-indigo-400/20 px-3 py-1 text-sm text-slate-100 transition hover:bg-indigo-400/30 disabled:opacity-60 disabled:cursor-not-allowed"
                       onClick={() => handleActionClick(message.id, action)}
                       disabled={message.actionProcessing || !online || message.status !== 'sent'}
                     >
@@ -530,7 +529,7 @@ export function ChatPage() {
         {/* Scroll to bottom button */}
         {showScrollButton && (
           <button
-            className="scroll-to-bottom-button"
+            className="fixed bottom-[120px] right-8 z-10 grid h-12 w-12 place-items-center rounded-full border border-slate-700/40 bg-slate-900/90 text-lg font-bold text-slate-100 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-indigo-400/20"
             onClick={scrollToBottom}
             title="Xuống tin nhắn mới nhất"
           >
@@ -538,8 +537,8 @@ export function ChatPage() {
           </button>
         )}
       </div>
-      <div className="chat-input-area">
-        <div className="quick-actions">{suggestionButtons}</div>
+      <div className="flex flex-col gap-3 border-t border-slate-700/40 bg-gradient-to-b from-slate-900/90 to-slate-900/80 px-5 py-4">
+        <div className="flex flex-wrap gap-2">{suggestionButtons}</div>
         <ChatComposer onSend={handleSend} disabled={isPending} />
       </div>
     </div>

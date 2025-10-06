@@ -47,6 +47,19 @@ export interface SummaryResponse {
     categoryName: string;
     amount: number;
   }>;
+  // Analytics metrics
+  transactionCount: number;
+  activeDays: number;
+  noSpendDays: number;
+  avgExpensePerTransaction: number;
+  topCategory: {
+    name: string;
+    amount: number;
+  } | null;
+  maxExpenseDay: {
+    date: string;
+    amount: number;
+  } | null;
   range?: {
     start?: string;
     end?: string;
