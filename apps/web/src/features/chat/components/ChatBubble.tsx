@@ -1,8 +1,8 @@
-import { ReactNode } from "react";
-
+import { ReactNode } from 'react';
+import botAvatar from '../../../../assets/images/bot-pfp.png';
 interface ChatBubbleProps {
-  role: "user" | "assistant";
-  status: "sent" | "pending" | "queued" | "error";
+  role: 'user' | 'assistant';
+  status: 'sent' | 'pending' | 'queued' | 'error';
   children: ReactNode;
   timestamp: string;
 }
@@ -12,12 +12,13 @@ export function ChatBubble({ role, status, children, timestamp }: ChatBubbleProp
     <div className={`flex items-start gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
       <div
         className={`grid h-11 w-11 place-items-center rounded-full font-bold tracking-wide flex-shrink-0 ${
-          role === 'user'
-            ? 'bg-sky-400/20 text-sky-400'
-            : 'bg-emerald-400/20 text-emerald-400'
+          role === 'user' ? 'bg-sky-400/20 text-sky-400' : 'bg-emerald-400/20 text-emerald-400 '
         }`}
       >
-        {role === 'user' ? 'Bạn' : 'AI'}
+        {role === 'assistant' && (
+          <img src={botAvatar} alt="Bot Avatar" className="w-full h-full object-cover" />
+        )}
+        {role === 'user' ? 'Bạn' : ''}
       </div>
 
       <div
