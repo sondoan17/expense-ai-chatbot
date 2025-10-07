@@ -11,11 +11,27 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* === BACKDROP OVERLAY (Mobile only) === */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSidebarOpen(false);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Đóng sidebar"
+        />
+      )}
+
       {/* === SIDEBAR === */}
       <aside
-        className={`fixed left-0 top-0 z-40 h-screen w-[280px] flex flex-col gap-7 border-r border-slate-700/30
+        className={`fixed left-0 top-0 z-50 h-screen w-[280px] flex flex-col gap-7 border-r border-slate-700/30
           bg-gradient-to-b from-slate-900/90 to-slate-800/95 p-6 backdrop-blur-xl transition-transform duration-300
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -26,7 +42,7 @@ export function AppLayout() {
             <p className="m-0 mt-1 text-sm text-slate-400">Trợ lý tài chính cá nhân</p>
           </div>
           <button
-            className="md:hidden text-slate-400 hover:text-slate-100 transition"
+            className="md:hidden text-slate-400 hover:text-slate-100 transition p-1 rounded-lg hover:bg-slate-700/20"
             onClick={() => setSidebarOpen(false)}
           >
             <X size={20} />
@@ -84,14 +100,14 @@ export function AppLayout() {
       {/* === MAIN CONTENT === */}
       <main
         className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${
-          sidebarOpen ? "md:ml-[280px]" : "ml-0"
+          sidebarOpen ? "md:ml-[280px] ml-0" : "ml-0"
         }`}
       >
         <header className="flex items-center justify-between px-6 py-5">
-          {/* Toggle Button */}
+          {/* Toggle Button - Always visible */}
           <button
-            className="md:hidden text-slate-400 hover:text-slate-100 transition"
-            onClick={() => setSidebarOpen(true)}
+            className="text-slate-400 hover:text-slate-100 transition p-2 rounded-lg hover:bg-slate-700/20"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             <Menu size={22} />
           </button>

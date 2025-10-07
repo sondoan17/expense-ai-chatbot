@@ -194,14 +194,142 @@
   color: var(--text-primary);
 }
 
-@media (max-width: 768px) {
+/* Mobile responsive styles */
+@media (max-width: 640px) {
   .chat-container {
     height: auto;
-    min-height: calc(100vh - 8rem);
+    min-height: calc(100vh - 6rem);
+    border-radius: 0;
+    border: none;
+  }
+
+  .chat-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .chat-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .chat-subtitle {
+    font-size: 0.8rem;
   }
 
   .chat-messages {
-    max-height: 60vh;
+    padding: 1rem;
+    max-height: 65vh;
+  }
+
+  .chat-row {
+    gap: 0.5rem;
+  }
+
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.7rem;
+  }
+
+  .chat-bubble {
+    max-width: 85vw;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .chat-meta {
+    font-size: 0.7rem;
+    gap: 0.4rem;
+  }
+
+  .chat-tag {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .chat-input-area {
+    padding: 0.75rem 1rem 1rem;
+  }
+
+  .chat-composer {
+    gap: 0.5rem;
+  }
+
+  .chat-composer textarea {
+    min-height: 56px;
+    padding: 0.6rem 2.5rem 0.6rem 0.8rem; /* Add right padding for button */
+    font-size: 0.9rem;
+  }
+
+  .chat-composer button {
+    width: 44px;
+    height: 44px;
+    right: 0.5rem;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .quick-actions {
+    gap: 0.4rem;
+  }
+
+  .quick-action {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .chat-bubble-actions {
+    gap: 0.4rem;
+  }
+
+  .chat-action-button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .scroll-to-bottom-button {
+    bottom: 100px;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    min-height: calc(100vh - 4rem);
+  }
+
+  .chat-messages {
+    max-height: 70vh;
+    padding: 0.75rem;
+  }
+
+  .chat-bubble {
+    max-width: 90vw;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .chat-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.65rem;
+  }
+
+  .chat-composer textarea {
+    min-height: 48px;
+    padding: 0.5rem 2.8rem 0.5rem 0.7rem; /* Add right padding for button */
+    font-size: 0.85rem;
+  }
+
+  .chat-composer button {
+    width: 40px;
+    height: 40px;
+    right: 0.4rem;
+    min-height: 40px;
+    min-width: 40px;
   }
 }
 
@@ -297,6 +425,57 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-.scroll-to-bottom-button:active {
+  .scroll-to-bottom-button:active {
   transform: translateY(0);
+}
+
+/* Touch-friendly improvements for mobile */
+@media (max-width: 640px) {
+  .chat-action-button,
+  .quick-action,
+  .chat-composer button {
+    min-height: 44px; /* iOS recommended touch target */
+    min-width: 44px;
+  }
+
+  .chat-bubble {
+    touch-action: manipulation; /* Prevent double-tap zoom */
+  }
+
+  .chat-composer textarea {
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    border-radius: 12px;
+  }
+
+  .chat-composer button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px; /* iOS recommended touch target */
+    min-width: 44px;
+  }
+
+  /* Ensure button doesn't interfere with text selection */
+  .chat-composer textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Smooth transitions for button state changes */
+  .chat-composer button:disabled {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Improve scrolling on mobile */
+  .chat-messages {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Better text selection on mobile */
+  .chat-bubble {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
