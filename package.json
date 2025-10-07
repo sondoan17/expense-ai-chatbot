@@ -15,7 +15,7 @@
     "format": "prettier --check \"**/*.{js,ts,tsx,json,md}\"",
     "format:write": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
     "lint-staged": "lint-staged",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:deploy": "prisma migrate deploy",
