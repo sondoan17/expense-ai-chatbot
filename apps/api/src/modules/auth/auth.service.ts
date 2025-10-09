@@ -152,7 +152,7 @@ export class AuthService {
 
     res.cookie('access_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development',
       sameSite: 'none',
       maxAge,
       path: '/',
@@ -162,7 +162,7 @@ export class AuthService {
   clearAuthCookie(res: Response): void {
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development',
       sameSite: 'none',
       path: '/',
     });
