@@ -1,8 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "outDir": "./dist",
     "declaration": true,
-    "noEmit": false
+    "removeComments": true
   },
-  "exclude": ["test", "dist", "node_modules"]
+  "exclude": ["test", "dist", "**/*.spec.ts"]
 }

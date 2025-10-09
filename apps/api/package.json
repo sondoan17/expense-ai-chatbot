@@ -11,11 +11,13 @@
     "prelint": "npm run prisma:generate",
     "dev": "nest start --watch --entryFile apps/api/src/main",
     "start": "nest start --entryFile apps/api/src/main",
+    "start:prod": "node dist/main.js",
     "build": "nest build",
     "lint": "eslint src --ext .ts --max-warnings=0",
     "test": "echo \"TODO: add backend tests\""
   },
   "dependencies": {
+    "@nestjs/cli": "^10.3.2",
     "@nestjs/common": "^10.3.9",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.3.9",
