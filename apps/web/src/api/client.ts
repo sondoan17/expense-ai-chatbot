@@ -10,7 +10,6 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi'): string {
   if (isAxiosError(error)) {
     const responseMessage = error.response?.data?.message;

@@ -153,7 +153,7 @@ export class AuthService {
     res.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // Cho phép cross-site requests
+      sameSite: 'lax',
       maxAge,
       path: '/',
     });
@@ -163,7 +163,7 @@ export class AuthService {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // Cho phép cross-site requests
+      sameSite: 'lax',
       path: '/',
     });
   }
