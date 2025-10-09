@@ -4,19 +4,18 @@
   "version": "0.1.0",
   "type": "commonjs",
   "scripts": {
-    "prisma:generate": "npx prisma generate --schema ../../prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema ../../prisma/schema.prisma",
     "predev": "npm run prisma:generate",
     "prestart": "npm run prisma:generate",
     "prebuild": "npm run prisma:generate",
     "prelint": "npm run prisma:generate",
-    "dev": "npx nest start --watch --entryFile apps/api/src/main",
-    "start": "npx nest start --entryFile apps/api/src/main",
-    "build": "npx nest build",
-    "lint": "npx eslint src --ext .ts --max-warnings=0",
+    "dev": "nest start --watch --entryFile apps/api/src/main",
+    "start": "nest start --entryFile apps/api/src/main",
+    "build": "nest build",
+    "lint": "eslint src --ext .ts --max-warnings=0",
     "test": "echo \"TODO: add backend tests\""
   },
   "dependencies": {
-    "@nestjs/cli": "^10.3.2",
     "@nestjs/common": "^10.3.9",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.3.9",
@@ -29,7 +28,6 @@
     "class-validator": "^0.14.1",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
-    "eslint": "^8.57.0",
     "luxon": "^3.7.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -41,6 +39,7 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@nestjs/cli": "^10.3.2",
     "@nestjs/schematics": "^10.1.1",
     "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
