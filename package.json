@@ -55,5 +55,10 @@
   "packageManager": "npm@10.8.2",
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "cloudinary": "^2.7.0",
+    "cloudinary-react": "^1.8.1",
+    "resend": "^6.1.2"
   }
 }

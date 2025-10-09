@@ -1,34 +1,34 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import { VitePWA } from "vite-plugin-pwa";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import { VitePWA } from 'vite-plugin-pwa';
 /* eslint-disable import/no-unresolved */
-import tailwindcss from "@tailwindcss/vite";
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg'],
       manifest: {
-        name: "Mimi",
-        short_name: "Mimi",
-        description: "Assistant quản lý chi tiêu cá nhân",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
-        display: "standalone",
-        start_url: "/",
+        name: 'Mimi',
+        short_name: 'Mimi',
+        description: 'Assistant quản lý chi tiêu cá nhân',
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
+        display: 'standalone',
+        start_url: '/',
         icons: [
           {
-            src: "/favicon.svg",
-            sizes: "192x192",
-            type: "image/svg+xml",
+            src: '/favicon.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
           },
           {
-            src: "/favicon.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
+            src: '/favicon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
           },
         ],
       },
@@ -36,9 +36,9 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /\/api\//,
-            handler: "NetworkFirst",
+            handler: 'NetworkFirst',
             options: {
-              cacheName: "mimi-api",
+              cacheName: 'mimi-api',
               networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [200] },
             },
@@ -53,8 +53,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": {
-        target: "http://localhost:4000",
+      '/api': {
+        target: 'http://localhost:4000',
         changeOrigin: true,
       },
     },

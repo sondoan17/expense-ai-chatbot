@@ -33,5 +33,3 @@ module.exports = {
   },
   ignorePatterns: ['node_modules/', 'dist/', 'build/', '.turbo/', 'coverage/', '**/dev-dist/'],
 };
-
-

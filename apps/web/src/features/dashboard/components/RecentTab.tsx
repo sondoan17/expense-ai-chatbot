@@ -1,4 +1,4 @@
-import { Currency } from "@expense-ai/shared";
+import { Currency } from '@expense-ai/shared';
 
 interface TxnItem {
   id: string;
@@ -28,12 +28,19 @@ export function RecentTab({ loading, items, formatDate, formatCurrency }: Recent
       </div>
       <div className="grid gap-2">
         {items.map((txn) => (
-          <div key={txn.id} className="flex items-center justify-between rounded-xl bg-slate-500/10 px-4 py-3">
+          <div
+            key={txn.id}
+            className="flex items-center justify-between rounded-xl bg-slate-500/10 px-4 py-3"
+          >
             <div>
               <span className="block">{formatDate(txn.occurredAt)}</span>
-              <span className="block text-sm text-slate-400">{txn.note ?? txn.category?.name ?? 'Không rõ'}</span>
+              <span className="block text-sm text-slate-400">
+                {txn.note ?? txn.category?.name ?? 'Không rõ'}
+              </span>
             </div>
-            <span className={`${txn.type === 'EXPENSE' ? 'text-rose-300' : 'text-emerald-200'} font-semibold`}>
+            <span
+              className={`${txn.type === 'EXPENSE' ? 'text-rose-300' : 'text-emerald-200'} font-semibold`}
+            >
               {txn.type === 'EXPENSE' ? '-' : '+'}
               {formatCurrency(txn.amount, txn.currency)}
             </span>
@@ -43,5 +50,3 @@ export function RecentTab({ loading, items, formatDate, formatCurrency }: Recent
     </section>
   );
 }
-
-

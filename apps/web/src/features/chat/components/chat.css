@@ -160,7 +160,10 @@
   background: linear-gradient(135deg, #38bdf8, #0ea5e9);
   color: #0f172a;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .chat-composer button:hover:enabled {
@@ -383,7 +386,9 @@
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background 0.2s ease, opacity 0.2s ease;
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .chat-action-button:hover:not(:disabled) {
@@ -425,7 +430,7 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-  .scroll-to-bottom-button:active {
+.scroll-to-bottom-button:active {
   transform: translateY(0);
 }
 

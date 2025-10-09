@@ -36,15 +36,17 @@ enum ChatMessageStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String?
-  passwordHash String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  transactions Transaction[]
-  budgets      Budget[]
-  chatMessages ChatMessage[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String?
+  avatar              String?
+  passwordHash        String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  transactions        Transaction[]
+  budgets             Budget[]
+  chatMessages        ChatMessage[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Category {
@@ -183,4 +185,17 @@ model ChatMessage {
   createdAt DateTime          @default(now())
 
   @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
 }

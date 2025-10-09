@@ -1,14 +1,14 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import { ChatBubble } from './components/ChatBubble';
 import { ChatComposer } from './components/ChatComposer';
-import { AgentChatResponse, ChatMessageDto, ChatHistoryResponse } from '../../api/types';
+import { AgentChatResponse, ChatMessageDto } from '../../api/types';
 import { AgentActionOption } from '@expense-ai/shared';
 
-import { apiClient, extractErrorMessage, isNetworkError } from '../../api/client';
+import { extractErrorMessage, isNetworkError } from '../../api/client';
 import { enqueueAgentMessage } from '../../offline/offlineQueue';
 import { useOfflineAgentSync } from '../../offline/useOfflineAgentSync';
-import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useOnlineStatus } from '../../hooks/utils/useOnlineStatus';
+import { useChatHistory, useSendMessage, useActionHandler } from '../../hooks/api/useChatApi';
 import './components/chat.css';
 
 interface ChatMessageItem {
@@ -94,24 +94,7 @@ export function ChatPage() {
     hasNextPage,
     isFetchingNextPage,
     refetch: refetchHistory,
-  } = useInfiniteQuery({
-    queryKey: ['chat-history'],
-    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
-      const { data } = await apiClient.get<ChatHistoryResponse>('/agent/history', {
-        params: {
-          limit: 20,
-          ...(pageParam && { cursor: pageParam }),
-        },
-      });
-      return data;
-    },
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialPageParam: undefined,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-    refetchOnMount: 'always',
-    staleTime: 30000,
-  });
+  } = useChatHistory();
 
   const historyMessages = useMemo(() => {
     if (!historyData?.pages) return [];
@@ -325,12 +308,8 @@ export function ChatPage() {
 
   useOfflineAgentSync(handleOfflineSync);
 
-  const { mutateAsync: sendToAgent, isPending } = useMutation({
-    mutationFn: async (payload: { message: string }) => {
-      const { data } = await apiClient.post<AgentChatResponse>('/agent/chat', payload);
-      return data;
-    },
-  });
+  const sendMessageMutation = useSendMessage();
+  const actionHandlerMutation = useActionHandler();
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -361,7 +340,7 @@ export function ChatPage() {
 
       // 3) Online: gửi server
       try {
-        const response = await sendToAgent({ message: text });
+        const response = await sendMessageMutation.mutateAsync({ message: text });
         updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'sent' }));
 
         // Không xoá bong bóng user local tại đây!
@@ -405,7 +384,7 @@ export function ChatPage() {
       addPendingMessage,
       online,
       refetchHistory,
-      sendToAgent,
+      sendMessageMutation,
       updatePendingMessage,
       scrollToBottomWithRetry,
     ],
@@ -430,7 +409,7 @@ export function ChatPage() {
       }
 
       try {
-        const { data } = await apiClient.post<AgentChatResponse>('/agent/action', {
+        const data = await actionHandlerMutation.mutateAsync({
           actionId: action.id,
           label: action.label,
           payload: action.payload,
@@ -461,7 +440,14 @@ export function ChatPage() {
         addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
       }
     },
-    [addPendingMessage, online, refetchHistory, updatePendingMessage, scrollToBottomWithRetry],
+    [
+      addPendingMessage,
+      online,
+      refetchHistory,
+      updatePendingMessage,
+      scrollToBottomWithRetry,
+      actionHandlerMutation,
+    ],
   );
 
   const suggestionButtons = useMemo(
@@ -471,12 +457,12 @@ export function ChatPage() {
           key={item}
           className="shrink-0 quick-action text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full bg-slate-700/30 hover:bg-slate-600/40 text-slate-300 hover:text-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => handleSend(item)}
-          disabled={isPending}
+          disabled={sendMessageMutation.isPending}
         >
           {item}
         </button>
       )),
-    [handleSend, isPending],
+    [handleSend, sendMessageMutation.isPending],
   );
 
   const isEmpty = combinedMessages.length === 0;
@@ -564,7 +550,7 @@ export function ChatPage() {
           </div>
         </div>
 
-        <ChatComposer onSend={handleSend} disabled={isPending} />
+        <ChatComposer onSend={handleSend} disabled={sendMessageMutation.isPending} />
       </div>
     </div>
   );

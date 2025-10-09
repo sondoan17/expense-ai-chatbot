@@ -4,6 +4,7 @@ export interface UserDto {
   id: string;
   email: string;
   name?: string | null;
+  avatar?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -11,6 +12,19 @@ export interface UserDto {
 export interface AuthResponse {
   user: UserDto;
   accessToken: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 export interface TransactionDto {
@@ -140,7 +154,3 @@ export interface AgentChatResponse {
   actions?: AgentActionOption[];
   error?: string;
 }
-
-
-
-

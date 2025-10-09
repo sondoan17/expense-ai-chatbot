@@ -1,21 +1,20 @@
-﻿import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import { extractErrorMessage } from "../../api/client";
+﻿import { FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useLogin } from '../../hooks/api/useAuthApi';
 
 export function LoginPage() {
-  const { login, isLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const loginMutation = useLogin();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     try {
-      await login({ email, password });
+      await loginMutation.mutateAsync({ email, password });
     } catch (err) {
-      setError(extractErrorMessage(err, "Đăng nhập thất bại"));
+      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
     }
   };
 
@@ -31,7 +30,9 @@ export function LoginPage() {
               Mimi
             </span>
             <h1 className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-white to-sky-300 bg-clip-text text-transparent">Chào mừng trở lại</span>
+              <span className="bg-gradient-to-r from-white to-sky-300 bg-clip-text text-transparent">
+                Chào mừng trở lại
+              </span>
             </h1>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
               Đăng nhập bằng email và mật khẩu để trò chuyện với trợ lý chi tiêu.
@@ -71,19 +72,26 @@ export function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loginMutation.isPending}
               className="mt-1 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-300 px-4 py-3 font-semibold text-slate-900 shadow-[0_18px_32px_-12px_rgba(56,189,248,0.35)] transition hover:translate-y-[-1px] hover:shadow-[0_22px_40px_-10px_rgba(56,189,248,0.45)] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+              {loginMutation.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            Chưa có tài khoản? {" "}
-            <Link to="/register" className="font-semibold text-sky-300 hover:underline">
-              Đăng ký ngay
-            </Link>
-          </p>
+          <div className="mt-6 text-center text-sm text-slate-400">
+            <p>
+              Chưa có tài khoản?{' '}
+              <Link to="/register" className="font-semibold text-sky-300 hover:underline">
+                Đăng ký ngay
+              </Link>
+            </p>
+            <p className="mt-2">
+              <Link to="/forgot-password" className="font-semibold text-sky-300 hover:underline">
+                Quên mật khẩu?
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

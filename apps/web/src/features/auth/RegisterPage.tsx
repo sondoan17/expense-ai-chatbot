@@ -1,22 +1,21 @@
-﻿import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import { extractErrorMessage } from "../../api/client";
+﻿import { FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useRegister } from '../../hooks/api/useAuthApi';
 
 export function RegisterPage() {
-  const { register, isLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const registerMutation = useRegister();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     try {
-      await register({ email, password, name: name || undefined });
+      await registerMutation.mutateAsync({ email, password, name: name || undefined });
     } catch (err) {
-      setError(extractErrorMessage(err, "Đăng ký thất bại"));
+      setError(err instanceof Error ? err.message : 'Đăng ký thất bại');
     }
   };
 
@@ -32,7 +31,9 @@ export function RegisterPage() {
               Mimi
             </span>
             <h1 className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-white to-sky-300 bg-clip-text text-transparent">Tạo tài khoản mới</span>
+              <span className="bg-gradient-to-r from-white to-sky-300 bg-clip-text text-transparent">
+                Tạo tài khoản mới
+              </span>
             </h1>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
               Đăng ký để bắt đầu theo dõi chi tiêu với trợ lý Mimi.
@@ -84,15 +85,15 @@ export function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={registerMutation.isPending}
               className="mt-1 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-300 px-4 py-3 font-semibold text-slate-900 shadow-[0_18px_32px_-12px_rgba(56,189,248,0.35)] transition hover:translate-y-[-1px] hover:shadow-[0_22px_40px_-10px_rgba(56,189,248,0.45)] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Đang tạo tài khoản..." : "Đăng ký"}
+              {registerMutation.isPending ? 'Đang tạo tài khoản...' : 'Đăng ký'}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-400">
-            Đã có tài khoản? {" "}
+            Đã có tài khoản?{' '}
             <Link to="/login" className="font-semibold text-sky-300 hover:underline">
               Đăng nhập
             </Link>

@@ -1,12 +1,16 @@
-﻿import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { useOnlineStatus } from "../hooks/useOnlineStatus";
-import { WifiOff, Wifi, MessageCircle, PieChart, LogOut, Menu, X } from "lucide-react";
+﻿import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/api/useAuth';
+import { useOnlineStatus } from '../hooks/utils/useOnlineStatus';
+import { WifiOff, Wifi, MessageCircle, PieChart, LogOut, Menu, X } from 'lucide-react';
+import { useUserStore } from '../store/user.store';
+import { UserDto } from '../api/types';
 
 export function AppLayout() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
+  const user = useUserStore((s: { user: UserDto | null }) => s.user);
   const online = useOnlineStatus();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -31,7 +35,7 @@ export function AppLayout() {
       <aside
         className={`fixed left-0 top-0 z-50 h-screen w-[280px] flex flex-col gap-7 border-r border-slate-700/30
           bg-gradient-to-b from-slate-900/90 to-slate-800/95 p-6 backdrop-blur-xl transition-transform duration-300
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -55,8 +59,8 @@ export function AppLayout() {
             className={({ isActive }) =>
               `${
                 isActive
-                  ? "bg-sky-400/20 text-slate-100"
-                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-700/20"
+                  ? 'bg-sky-400/20 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
               } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
             }
           >
@@ -68,8 +72,8 @@ export function AppLayout() {
             className={({ isActive }) =>
               `${
                 isActive
-                  ? "bg-sky-400/20 text-slate-100"
-                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-700/20"
+                  ? 'bg-sky-400/20 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
               } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
             }
           >
@@ -79,15 +83,22 @@ export function AppLayout() {
         </nav>
 
         <div className="mt-auto flex flex-col gap-3">
-          <div className="flex items-center gap-3 rounded-2xl bg-slate-300/10 p-3">
+          <button
+            onClick={() => navigate('/app/profile')}
+            className="flex items-center gap-3 rounded-2xl bg-slate-300/10 p-3 hover:bg-slate-300/20 transition cursor-pointer text-left w-full"
+          >
             <div className="grid h-10 w-10 place-items-center rounded-full bg-sky-400/20 font-bold">
-              {user?.name?.[0]?.toUpperCase() ?? user?.email[0]?.toUpperCase()}
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full" />
+              ) : (
+                user?.email[0]?.toUpperCase()
+              )}
             </div>
-            <div>
+            <div className="flex-1">
               <p className="m-0 font-semibold">{user?.name ?? user?.email}</p>
               <p className="m-0 text-sm text-slate-400">{user?.email}</p>
             </div>
-          </div>
+          </button>
           <button
             className="inline-flex items-center gap-2 rounded-xl bg-red-500/15 px-4 py-2 font-semibold text-rose-200 transition hover:bg-red-500/25"
             onClick={logout}
@@ -100,7 +111,7 @@ export function AppLayout() {
       {/* === MAIN CONTENT === */}
       <main
         className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${
-          sidebarOpen ? "md:ml-[280px] ml-0" : "ml-0"
+          sidebarOpen ? 'md:ml-[280px] ml-0' : 'ml-0'
         }`}
       >
         <header className="flex items-center justify-between px-6 py-5">
@@ -115,12 +126,12 @@ export function AppLayout() {
           <div
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm ${
               online
-                ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
-                : "border-red-400/40 bg-red-500/15 text-rose-100"
+                ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-100'
+                : 'border-red-400/40 bg-red-500/15 text-rose-100'
             }`}
           >
             {online ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{online ? "Trực tuyến" : "Ngoại tuyến"}</span>
+            <span>{online ? 'Trực tuyến' : 'Ngoại tuyến'}</span>
           </div>
         </header>
 

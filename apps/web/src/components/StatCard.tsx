@@ -14,8 +14,8 @@ export function StatCard({ label, value, trend, accent = 'primary' }: StatCardPr
         accent === 'warning'
           ? 'bg-gradient-to-br from-yellow-400/20 to-amber-500/10'
           : accent === 'success'
-          ? 'bg-gradient-to-br from-emerald-400/20 to-green-500/10'
-          : 'bg-gradient-to-br from-sky-400/20 to-indigo-500/10'
+            ? 'bg-gradient-to-br from-emerald-400/20 to-green-500/10'
+            : 'bg-gradient-to-br from-sky-400/20 to-indigo-500/10'
       }`}
     >
       <p className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>

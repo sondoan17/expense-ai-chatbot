@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 // charts rendered in child components
 import { registerCharts } from './components/charts';
-import { apiClient } from '../../api/client';
-import { BudgetStatusResponse, OverviewResponse, SummaryResponse } from '../../api/types';
+import { useSummary, useOverview, useBudgetStatus } from '../../hooks/api/useDashboardApi';
 // stat card used in child component
 import { OverviewTab } from './components/OverviewTab';
 import { ChartsTab } from './components/ChartsTab';
@@ -14,67 +12,12 @@ import { formatCurrency, formatDate } from '../../utils/format';
 
 registerCharts();
 
-const REFRESH_OPTIONS = {
-  staleTime: 0,
-  refetchOnWindowFocus: true,
-  refetchOnReconnect: true,
-  refetchOnMount: 'always' as const,
-};
-
-function useSummary(period: string) {
-  return useQuery({
-    queryKey: ['transactions-summary', period],
-    queryFn: async () => {
-      const { data } = await apiClient.get<SummaryResponse>('/transactions/summary', {
-        params: { period },
-      });
-      return data;
-    },
-    ...REFRESH_OPTIONS,
-  });
-}
-
-function useOverview() {
-  return useQuery({
-    queryKey: ['reports-overview', 'this_month'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<OverviewResponse>('/reports/overview', {
-        params: { period: 'this_month', recent: 10 },
-      });
-      return data;
-    },
-    ...REFRESH_OPTIONS,
-  });
-}
-
-function useBudgets() {
-  return useQuery({
-    queryKey: ['budgets-status'],
-    queryFn: async () => {
-      const { data: budgets } = await apiClient.get<BudgetStatusResponse['budget'][]>('/budgets');
-      if (!budgets.length) {
-        return [] as BudgetStatusResponse[];
-      }
-      const statuses = await Promise.all(
-        budgets.map(async (budget) => {
-          const { data } = await apiClient.get<BudgetStatusResponse>(
-            `/budgets/${budget.id}/status`,
-          );
-          return data;
-        }),
-      );
-      return statuses;
-    },
-    ...REFRESH_OPTIONS,
-  });
-}
-
 export function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
 
   const summaryQuery = useSummary(selectedPeriod);
   const overviewQuery = useOverview();
-  const budgetsQuery = useBudgets();
+  const budgetsQuery = useBudgetStatus();
 
   const { data: summary, isLoading: summaryLoading } = summaryQuery;
   const { data: overview, isLoading: overviewLoading } = overviewQuery;
@@ -203,9 +146,9 @@ export function DashboardPage() {
         )}
 
         {activeTab === 'charts' && (
-          <ChartsTab 
-            doughnutData={doughnutData} 
-            lineData={lineData} 
+          <ChartsTab
+            doughnutData={doughnutData}
+            lineData={lineData}
             formatCurrency={formatCurrency}
           />
         )}

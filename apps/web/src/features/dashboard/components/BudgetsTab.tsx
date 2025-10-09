@@ -1,7 +1,14 @@
-import { Currency } from "@expense-ai/shared";
+import { Currency } from '@expense-ai/shared';
 
 interface BudgetItem {
-  budget: { id: string; month: number; year: number; currency: Currency; category?: { name: string } | null; limitAmount: number };
+  budget: {
+    id: string;
+    month: number;
+    year: number;
+    currency: Currency;
+    category?: { name: string } | null;
+    limitAmount: number;
+  };
   percentage: number;
   spent: number;
   overBudget: boolean;
@@ -17,7 +24,8 @@ interface BudgetsTabProps {
 
 export function BudgetsTab({ budgets, loading, formatCurrency }: BudgetsTabProps) {
   if (loading) return <p>Đang tải ngân sách...</p>;
-  if (!budgets || budgets.length === 0) return <p>Chưa có ngân sách. Hãy tạo ngân sách mới trong trang Lập kế hoạch.</p>;
+  if (!budgets || budgets.length === 0)
+    return <p>Chưa có ngân sách. Hãy tạo ngân sách mới trong trang Lập kế hoạch.</p>;
 
   return (
     <section className="grid gap-4 rounded-2xl border border-slate-700/40 bg-slate-900/60 p-5 backdrop-blur-xl">
@@ -31,15 +39,22 @@ export function BudgetsTab({ budgets, loading, formatCurrency }: BudgetsTabProps
           const remainingLabel = formatCurrency(budget.remaining, budget.budget.currency);
           const overspentLabel = formatCurrency(budget.overspent, budget.budget.currency);
           return (
-            <div key={budget.budget.id} className="grid gap-2 rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
+            <div
+              key={budget.budget.id}
+              className="grid gap-2 rounded-xl border border-slate-700/40 bg-slate-900/70 p-4"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <strong>{budget.budget.category?.name ?? 'Tất cả danh mục'}</strong>
-                  <div className="text-sm text-slate-400">Tháng {budget.budget.month}/{budget.budget.year}</div>
+                  <div className="text-sm text-slate-400">
+                    Tháng {budget.budget.month}/{budget.budget.year}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span>{formatCurrency(budget.spent, budget.budget.currency)}</span>
-                  <div className="text-sm text-slate-400">/ {formatCurrency(budget.budget.limitAmount, budget.budget.currency)}</div>
+                  <div className="text-sm text-slate-400">
+                    / {formatCurrency(budget.budget.limitAmount, budget.budget.currency)}
+                  </div>
                 </div>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-500/30">
@@ -60,5 +75,3 @@ export function BudgetsTab({ budgets, loading, formatCurrency }: BudgetsTabProps
     </section>
   );
 }
-
-

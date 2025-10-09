@@ -1,8 +1,9 @@
-import { ValidationPipe } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
-import { ConfigService } from "@nestjs/config";
-import { AppModule } from "./app.module";
-import { PrismaService } from "./prisma/prisma.service";
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -10,8 +11,10 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const corsOrigins = (configService.get<string>("WEB_ORIGIN") ?? "http://localhost:5173,http://localhost:4173")
-    .split(",")
+  const corsOrigins = (
+    configService.get<string>('WEB_ORIGIN') ?? 'http://localhost:5173,http://localhost:4173'
+  )
+    .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
@@ -20,7 +23,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix("api");
+  app.use(cookieParser());
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -32,7 +36,7 @@ async function bootstrap() {
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
 
-  const port = configService.get<number>("PORT", 4000);
+  const port = configService.get<number>('PORT', 4000);
 
   await app.listen(port);
 }

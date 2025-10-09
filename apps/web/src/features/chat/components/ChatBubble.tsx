@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import botAvatar from '../../../../assets/images/bot-pfp.png';
+import { useUserStore } from '../../../store/user.store';
 interface ChatBubbleProps {
   role: 'user' | 'assistant';
   status: 'sent' | 'pending' | 'queued' | 'error';
@@ -8,6 +9,9 @@ interface ChatBubbleProps {
 }
 
 export function ChatBubble({ role, status, children, timestamp }: ChatBubbleProps) {
+  const user = useUserStore(
+    (s: { user: { avatar?: string | null; email: string } | null }) => s.user,
+  );
   return (
     <div className={`flex items-start gap-2 sm:gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
       <div
@@ -16,9 +20,25 @@ export function ChatBubble({ role, status, children, timestamp }: ChatBubbleProp
         }`}
       >
         {role === 'assistant' && (
-          <img src={botAvatar} alt="Bot Avatar" className="w-full h-full object-cover rounded-full" />
+          <img
+            src={botAvatar}
+            alt="Bot Avatar"
+            className="w-full h-full object-cover rounded-full"
+          />
         )}
-        {role === 'user' ? 'Bạn' : ''}
+        {role === 'user' ? (
+          user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt="User Avatar"
+              className="w-full h-full object-cover rounded-full"
+            />
+          ) : (
+            user?.email[0]?.toUpperCase()
+          )
+        ) : (
+          ''
+        )}
       </div>
 
       <div

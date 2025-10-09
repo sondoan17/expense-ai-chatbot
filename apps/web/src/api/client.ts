@@ -7,15 +7,8 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
-
-export function setAuthToken(token: string | null) {
-  if (token) {
-    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete apiClient.defaults.headers.common.Authorization;
-  }
-}
 
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi'): string {
   if (isAxiosError(error)) {
@@ -36,4 +29,3 @@ export function isNetworkError(error: unknown): boolean {
 }
 
 export type ApiError = AxiosError<{ message?: string | string[] }>;
-
