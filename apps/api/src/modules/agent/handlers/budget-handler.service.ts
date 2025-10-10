@@ -27,6 +27,7 @@ import {
 } from '../utils/agent-response.utils';
 import { CategoryResolverService } from './category-resolver.service';
 import { TransactionResult } from '../types/internal.types';
+import { AIResponseService } from '../services/ai-response.service';
 
 const RECURRING_UPDATE_MARKERS = [
   'cap nhat',
@@ -65,6 +66,7 @@ export class BudgetHandlerService {
     private readonly recurringBudgetsService: RecurringBudgetsService,
     private readonly configService: ConfigService,
     private readonly categoryResolver: CategoryResolverService,
+    private readonly aiResponseService: AIResponseService,
   ) {}
 
   async handleSetBudget(
@@ -323,30 +325,52 @@ export class BudgetHandlerService {
     }
 
     const status = await this.budgetsService.status(user.id, budget.id);
-    const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
-    const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
-    const percentLabel = `${status.percentage}%`;
-    const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
-    const overspentLabel =
-      status.overBudget && status.overspent > 0
-        ? formatCurrency(status.overspent, status.budget.currency, language)
-        : undefined;
-    const endDateLabel = status.range?.end ? formatDate(status.range.end, timezone) : undefined;
 
-    return {
-      reply: buildBudgetStatusReply(language, {
-        amountLabel,
-        limitLabel,
-        percentLabel,
-        remainingLabel,
-        endDateLabel,
-        overBudget: status.overBudget,
-        overspentLabel,
-      }),
-      intent: payload.intent,
-      parsed: payload,
-      data: { status },
-    };
+    // Generate AI response for budget status
+    try {
+      const reply = await this.aiResponseService.generateQueryResponse({
+        intent: payload.intent,
+        language,
+        data: status,
+        user,
+        userQuestion: payload.note || 'Tôi muốn xem tình trạng ngân sách',
+      });
+
+      return {
+        reply,
+        intent: payload.intent,
+        parsed: payload,
+        data: { status },
+      };
+    } catch (error) {
+      this.logger.error('Error generating AI response for budget status, falling back to template', error);
+      
+      // Fallback to original template logic
+      const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
+      const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
+      const percentLabel = `${status.percentage}%`;
+      const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
+      const overspentLabel =
+        status.overBudget && status.overspent > 0
+          ? formatCurrency(status.overspent, status.budget.currency, language)
+          : undefined;
+      const endDateLabel = status.range?.end ? formatDate(status.range.end, timezone) : undefined;
+
+      return {
+        reply: buildBudgetStatusReply(language, {
+          amountLabel,
+          limitLabel,
+          percentLabel,
+          remainingLabel,
+          endDateLabel,
+          overBudget: status.overBudget,
+          overspentLabel,
+        }),
+        intent: payload.intent,
+        parsed: payload,
+        data: { status },
+      };
+    }
   }
 
   async handleSetRecurringBudget(
