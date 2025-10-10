@@ -149,22 +149,31 @@ export class AuthService {
   setAuthCookie(res: Response, token: string): void {
     const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '7d';
     const maxAge = this.parseExpiresIn(expiresIn);
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
 
     res.cookie('access_token', token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: 'lax', 
       maxAge,
       path: '/',
+      ...(isProduction && { 
+        domain: this.configService.get<string>('COOKIE_DOMAIN')
+      }),
     });
   }
 
   clearAuthCookie(res: Response): void {
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: 'lax',
       path: '/',
+      ...(isProduction && { 
+        domain: this.configService.get<string>('COOKIE_DOMAIN')
+      }),
     });
   }
 
