@@ -34,9 +34,8 @@ export class AIResponseService {
 
     try {
       // Lấy chat history nếu chưa có
-      const recentMessages = chatHistory.length > 0 
-        ? chatHistory 
-        : await this.getRecentChatHistory(user.id, 5);
+      const recentMessages =
+        chatHistory.length > 0 ? chatHistory : await this.getRecentChatHistory(user.id, 5);
 
       // Chọn prompt phù hợp
       let systemPrompt: string;
@@ -79,7 +78,7 @@ export class AIResponseService {
           max_tokens: 500,
           temperature: 0.7,
           response_format: { type: 'text' },
-        }
+        },
       );
 
       // Append insights nếu có
@@ -89,16 +88,18 @@ export class AIResponseService {
       }
 
       return response;
-
     } catch (error) {
       this.logger.error('Error generating AI response', error);
-      
+
       // Fallback to template response
       return this.getFallbackResponse(intent, language);
     }
   }
 
-  private async getRecentChatHistory(userId: string, limit: number): Promise<Array<{ role: string; content: string }>> {
+  private async getRecentChatHistory(
+    userId: string,
+    limit: number,
+  ): Promise<Array<{ role: string; content: string }>> {
     try {
       const messages = await this.prisma.chatMessage.findMany({
         where: { userId },
@@ -110,7 +111,7 @@ export class AIResponseService {
         },
       });
 
-      return messages.reverse().map(msg => ({
+      return messages.reverse().map((msg) => ({
         role: msg.role === 'USER' ? 'user' : 'assistant',
         content: msg.content,
       }));
@@ -131,13 +132,9 @@ export class AIResponseService {
   }): string {
     const { systemPrompt, intent, language, data, insights, chatHistory, userQuestion } = params;
 
-    const chatHistoryText = chatHistory
-      .map(msg => `${msg.role}: ${msg.content}`)
-      .join('\n');
+    const chatHistoryText = chatHistory.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
 
-    const insightsText = insights
-      .map(insight => `- ${insight.message}`)
-      .join('\n');
+    const insightsText = insights.map((insight) => `- ${insight.message}`).join('\n');
 
     return systemPrompt
       .replace('{intent}', intent)
@@ -213,9 +210,12 @@ Danh mục: ${status.budget.category?.name || 'Tổng thể'}`;
         }>;
       };
       if (result?.data) {
-        const transactions = result.data.map((tx) => 
-          `${tx.occurredAt}: ${tx.amount} ${tx.currency} - ${tx.category?.name || 'Khác'}`
-        ).join('\n');
+        const transactions = result.data
+          .map(
+            (tx) =>
+              `${tx.occurredAt}: ${tx.amount} ${tx.currency} - ${tx.category?.name || 'Khác'}`,
+          )
+          .join('\n');
         return `Các giao dịch gần đây:\n${transactions}`;
       }
       return JSON.stringify(data, null, 2);
@@ -228,18 +228,18 @@ Danh mục: ${status.budget.category?.name || 'Tổng thể'}`;
     if (insights.length === 0) return '';
 
     // Chỉ hiển thị insights quan trọng nhất
-    const criticalInsights = insights.filter(i => i.severity === 'critical');
-    const warningInsights = insights.filter(i => i.severity === 'warning');
-    
-    const topInsights = [
-      ...criticalInsights.slice(0, 2),
-      ...warningInsights.slice(0, 2),
-    ].slice(0, 3); // Tối đa 3 insights
+    const criticalInsights = insights.filter((i) => i.severity === 'critical');
+    const warningInsights = insights.filter((i) => i.severity === 'warning');
+
+    const topInsights = [...criticalInsights.slice(0, 2), ...warningInsights.slice(0, 2)].slice(
+      0,
+      3,
+    ); // Tối đa 3 insights
 
     if (topInsights.length === 0) return '';
 
     const header = language === 'vi' ? '💡 Gợi ý từ Mimi:' : '💡 Insights from Mimi:';
-    const insightTexts = topInsights.map(insight => `• ${insight.message}`).join('\n');
+    const insightTexts = topInsights.map((insight) => `• ${insight.message}`).join('\n');
 
     return `${header}\n${insightTexts}`;
   }
@@ -248,24 +248,24 @@ Danh mục: ${status.budget.category?.name || 'Tổng thể'}`;
     // Fallback responses khi AI generation fail
     switch (intent) {
       case 'query_total':
-        return language === 'vi' 
+        return language === 'vi'
           ? 'Mình đã phân tích dữ liệu chi tiêu của bạn. Bạn có muốn xem chi tiết hơn không?'
-          : 'I\'ve analyzed your spending data. Would you like to see more details?';
-      
+          : "I've analyzed your spending data. Would you like to see more details?";
+
       case 'get_budget_status':
         return language === 'vi'
           ? 'Đây là tình trạng ngân sách hiện tại của bạn.'
-          : 'Here\'s your current budget status.';
-      
+          : "Here's your current budget status.";
+
       case 'list_recent':
         return language === 'vi'
           ? 'Đây là các giao dịch gần đây của bạn.'
           : 'Here are your recent transactions.';
-      
+
       default:
         return language === 'vi'
           ? 'Mình đã xử lý yêu cầu của bạn.'
-          : 'I\'ve processed your request.';
+          : "I've processed your request.";
     }
   }
 }

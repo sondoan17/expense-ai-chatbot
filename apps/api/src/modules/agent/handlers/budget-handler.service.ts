@@ -343,11 +343,18 @@ export class BudgetHandlerService {
         data: { status },
       };
     } catch (error) {
-      this.logger.error('Error generating AI response for budget status, falling back to template', error);
-      
+      this.logger.error(
+        'Error generating AI response for budget status, falling back to template',
+        error,
+      );
+
       // Fallback to original template logic
       const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
-      const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
+      const limitLabel = formatCurrency(
+        status.budget.limitAmount,
+        status.budget.currency,
+        language,
+      );
       const percentLabel = `${status.percentage}%`;
       const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
       const overspentLabel =

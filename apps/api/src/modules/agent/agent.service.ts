@@ -342,7 +342,10 @@ export class AgentService {
     }
   }
 
-  private async getRecentChatHistory(userId: string, limit = 10): Promise<Array<{ role: string; content: string }>> {
+  private async getRecentChatHistory(
+    userId: string,
+    limit = 10,
+  ): Promise<Array<{ role: string; content: string }>> {
     try {
       const messages = await this.prisma.chatMessage.findMany({
         where: { userId },
@@ -354,7 +357,7 @@ export class AgentService {
         },
       });
 
-      return messages.reverse().map(msg => ({
+      return messages.reverse().map((msg) => ({
         role: msg.role === 'USER' ? 'user' : 'assistant',
         content: msg.content,
       }));

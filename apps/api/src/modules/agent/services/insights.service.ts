@@ -25,7 +25,7 @@ export class InsightsService {
     currency?: Currency,
   ): Promise<SpendingTrendData[]> {
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? 'Asia/Ho_Chi_Minh';
-    
+
     // Lấy dữ liệu tháng hiện tại
     const currentMonth = DateTime.fromJSDate(timeRange.end).setZone(timezone);
     const previousMonth = currentMonth.minus({ months: 1 });
@@ -71,35 +71,38 @@ export class InsightsService {
 
     // Lấy thông tin categories
     const categoryIds = new Set([
-      ...currentMonthData.map(d => d.categoryId).filter(Boolean),
-      ...previousMonthData.map(d => d.categoryId).filter(Boolean),
+      ...currentMonthData.map((d) => d.categoryId).filter(Boolean),
+      ...previousMonthData.map((d) => d.categoryId).filter(Boolean),
     ]);
 
     const categories = await this.prisma.category.findMany({
       where: { id: { in: Array.from(categoryIds).filter(Boolean) as string[] } },
     });
 
-    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+    const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
     // Tạo map cho dễ lookup
     const currentMap = new Map(
-      currentMonthData.map(d => [d.categoryId, d._sum.amount?.toNumber() ?? 0])
+      currentMonthData.map((d) => [d.categoryId, d._sum.amount?.toNumber() ?? 0]),
     );
     const previousMap = new Map(
-      previousMonthData.map(d => [d.categoryId, d._sum.amount?.toNumber() ?? 0])
+      previousMonthData.map((d) => [d.categoryId, d._sum.amount?.toNumber() ?? 0]),
     );
 
     // Tính toán trends
     const trends: SpendingTrendData[] = [];
-    
+
     for (const categoryId of categoryIds) {
       const currentAmount = currentMap.get(categoryId) ?? 0;
       const previousAmount = previousMap.get(categoryId) ?? 0;
-      
+
       if (currentAmount > 0 || previousAmount > 0) {
-        const percentageChange = previousAmount > 0 
-          ? ((currentAmount - previousAmount) / previousAmount) * 100
-          : currentAmount > 0 ? 100 : 0;
+        const percentageChange =
+          previousAmount > 0
+            ? ((currentAmount - previousAmount) / previousAmount) * 100
+            : currentAmount > 0
+              ? 100
+              : 0;
 
         let trend: 'increasing' | 'decreasing' | 'stable';
         if (Math.abs(percentageChange) < 5) {
@@ -141,8 +144,12 @@ export class InsightsService {
     for (const trend of trends) {
       if (Math.abs(trend.percentageChange) >= threshold) {
         const anomalyType = trend.percentageChange > 0 ? 'spike' : 'drop';
-        const severity = Math.abs(trend.percentageChange) >= 50 ? 'high' : 
-                        Math.abs(trend.percentageChange) >= 30 ? 'medium' : 'low';
+        const severity =
+          Math.abs(trend.percentageChange) >= 50
+            ? 'high'
+            : Math.abs(trend.percentageChange) >= 30
+              ? 'medium'
+              : 'low';
 
         let description: string;
         let suggestedAction: string | undefined;
@@ -174,7 +181,7 @@ export class InsightsService {
     currency: Currency = Currency.VND,
   ): Promise<BudgetRecommendation[]> {
     const recommendations: BudgetRecommendation[] = [];
-    
+
     // Lấy dữ liệu chi tiêu 3 tháng gần nhất để đề xuất ngân sách
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? 'Asia/Ho_Chi_Minh';
     const now = DateTime.now().setZone(timezone);
@@ -199,9 +206,9 @@ export class InsightsService {
     });
 
     const categories = await this.prisma.category.findMany({
-      where: { id: { in: spendingData.map(d => d.categoryId).filter(Boolean) as string[] } },
+      where: { id: { in: spendingData.map((d) => d.categoryId).filter(Boolean) as string[] } },
     });
-    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+    const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
     // Kiểm tra categories nào chưa có budget
     const existingBudgets = await this.prisma.budget.findMany({
@@ -213,7 +220,7 @@ export class InsightsService {
       },
     });
 
-    const budgetedCategories = new Set(existingBudgets.map(b => b.categoryId));
+    const budgetedCategories = new Set(existingBudgets.map((b) => b.categoryId));
 
     for (const data of spendingData) {
       const categoryName = categoryMap.get(data.categoryId as string) ?? 'Khác';
@@ -222,14 +229,16 @@ export class InsightsService {
       if (avgAmount > 0 && !budgetedCategories.has(data.categoryId)) {
         // Đề xuất budget dựa trên trung bình chi tiêu + 20% buffer
         const suggestedAmount = Math.round(avgAmount * 1.2);
-        
+
         let priority: 'high' | 'medium' | 'low';
         let reason: string;
 
-        if (avgAmount >= 1000000) { // >= 1M VND
+        if (avgAmount >= 1000000) {
+          // >= 1M VND
           priority = 'high';
           reason = `${categoryName} là danh mục chi tiêu lớn (trung bình ${this.formatCurrency(avgAmount, currency)})`;
-        } else if (avgAmount >= 500000) { // >= 500K VND
+        } else if (avgAmount >= 500000) {
+          // >= 500K VND
           priority = 'medium';
           reason = `${categoryName} có chi tiêu đáng kể (trung bình ${this.formatCurrency(avgAmount, currency)})`;
         } else {
@@ -257,11 +266,10 @@ export class InsightsService {
     timeRange: { start: Date; end: Date },
     currency?: Currency,
   ): Promise<InsightResult[]> {
-    
     try {
       // Phân tích trends
       const trends = await this.analyzeSpendingTrends(userId, timeRange, currency);
-      
+
       // Phát hiện anomalies
       const anomalies = await this.detectAnomalies(
         userId,
@@ -284,8 +292,12 @@ export class InsightsService {
       for (const anomaly of anomalies) {
         allInsights.push({
           type: 'anomaly',
-          severity: anomaly.severity === 'high' ? 'critical' : 
-                   anomaly.severity === 'medium' ? 'warning' : 'info',
+          severity:
+            anomaly.severity === 'high'
+              ? 'critical'
+              : anomaly.severity === 'medium'
+                ? 'warning'
+                : 'info',
           category: anomaly.category,
           message: anomaly.description,
           data: {
@@ -296,7 +308,7 @@ export class InsightsService {
       }
 
       // 2. Top recommendations (chỉ lấy high priority)
-      const highPriorityRecs = recommendations.filter(r => r.priority === 'high').slice(0, 2);
+      const highPriorityRecs = recommendations.filter((r) => r.priority === 'high').slice(0, 2);
       for (const rec of highPriorityRecs) {
         allInsights.push({
           type: 'recommendation',
@@ -312,7 +324,7 @@ export class InsightsService {
       }
 
       // 3. Significant trends (chỉ lấy những thay đổi > 50%)
-      const significantTrends = trends.filter(t => Math.abs(t.percentageChange) >= 50);
+      const significantTrends = trends.filter((t) => Math.abs(t.percentageChange) >= 50);
       for (const trend of significantTrends.slice(0, 2)) {
         allInsights.push({
           type: 'trend',
@@ -334,7 +346,6 @@ export class InsightsService {
 
       // 5. Limit to top 4 insights để tránh spam
       return sortedInsights.slice(0, 4);
-
     } catch (error) {
       this.logger.error('Error generating insights', error);
       return [];
@@ -343,7 +354,7 @@ export class InsightsService {
 
   private removeDuplicateInsights(insights: InsightResult[]): InsightResult[] {
     const seen = new Set<string>();
-    return insights.filter(insight => {
+    return insights.filter((insight) => {
       const key = `${insight.type}-${insight.category}-${insight.message}`;
       if (seen.has(key)) {
         return false;

@@ -95,7 +95,7 @@ export class QueryHandlerService {
       };
     } catch (error) {
       this.logger.error('Error generating AI response, falling back to template', error);
-      
+
       // Fallback to original template logic
       const rangeLabel = describeRange(
         summary.range?.start,
@@ -199,8 +199,11 @@ export class QueryHandlerService {
         data: { transactions: result },
       };
     } catch (error) {
-      this.logger.error('Error generating AI response for recent transactions, falling back to template', error);
-      
+      this.logger.error(
+        'Error generating AI response for recent transactions, falling back to template',
+        error,
+      );
+
       // Fallback to original template logic
       const lines = result.data.map((item) => {
         const amount = formatCurrency(item.amount, item.currency, language);

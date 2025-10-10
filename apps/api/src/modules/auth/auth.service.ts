@@ -154,25 +154,25 @@ export class AuthService {
     res.cookie('access_token', token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax', 
+      sameSite: 'lax',
       maxAge,
       path: '/',
-      ...(isProduction && { 
-        domain: this.configService.get<string>('COOKIE_DOMAIN')
+      ...(isProduction && {
+        domain: this.configService.get<string>('COOKIE_DOMAIN'),
       }),
     });
   }
 
   clearAuthCookie(res: Response): void {
     const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
-    
+
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
       path: '/',
-      ...(isProduction && { 
-        domain: this.configService.get<string>('COOKIE_DOMAIN')
+      ...(isProduction && {
+        domain: this.configService.get<string>('COOKIE_DOMAIN'),
       }),
     });
   }
