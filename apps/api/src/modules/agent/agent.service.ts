@@ -342,6 +342,28 @@ export class AgentService {
     }
   }
 
+  private async getRecentChatHistory(userId: string, limit = 10): Promise<Array<{ role: string; content: string }>> {
+    try {
+      const messages = await this.prisma.chatMessage.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          role: true,
+          content: true,
+        },
+      });
+
+      return messages.reverse().map(msg => ({
+        role: msg.role === 'USER' ? 'user' : 'assistant',
+        content: msg.content,
+      }));
+    } catch (error) {
+      this.logger.error('Error fetching chat history', error);
+      return [];
+    }
+  }
+
   private async finalizeResponse(
     userId: string,
     result: AgentChatResult,

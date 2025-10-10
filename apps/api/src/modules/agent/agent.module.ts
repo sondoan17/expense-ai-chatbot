@@ -17,6 +17,8 @@ import {
   QueryHandlerService,
   CategoryResolverService,
 } from './handlers';
+import { InsightsService } from './services/insights.service';
+import { AIResponseService } from './services/ai-response.service';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import {
     RecurringHandlerService,
     QueryHandlerService,
     CategoryResolverService,
+    InsightsService,
+    AIResponseService,
   ],
 })
 export class AgentModule {}
