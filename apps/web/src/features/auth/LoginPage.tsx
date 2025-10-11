@@ -1,9 +1,11 @@
 ﻿import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLogin } from '../../hooks/api/useAuthApi';
+import { useToast } from '../../contexts/ToastContext';
 
 export function LoginPage() {
   const loginMutation = useLogin();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -13,8 +15,11 @@ export function LoginPage() {
     setError(null);
     try {
       await loginMutation.mutateAsync({ email, password });
+      toast.success('Đăng nhập thành công', 'Chào mừng bạn quay trở lại!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
+      const errorMessage = err instanceof Error ? err.message : 'Đăng nhập thất bại';
+      setError(errorMessage);
+      toast.error('Đăng nhập thất bại', errorMessage);
     }
   };
 

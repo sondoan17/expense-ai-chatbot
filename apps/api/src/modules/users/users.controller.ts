@@ -3,14 +3,18 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PublicUser } from './types/public-user.type';
 import { UsersService } from './users.service';
+import { UserSettingsService } from './users-settings.service';
 import { CloudinaryService } from '../../integrations/cloudinary/cloudinary.service';
 import { ResetAccountDto } from './dto/reset-account.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdatePersonalityDto } from './dto/update-personality.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
+    private readonly userSettingsService: UserSettingsService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -34,6 +38,19 @@ export class UsersController {
   @Post('upload-signature')
   getUploadSignature(@CurrentUser() user: PublicUser) {
     return this.cloudinaryService.generateSignature(`avatars/${user.id}`);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async changePassword(
+    @CurrentUser() user: PublicUser,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(
+      user.id,
+      changePasswordDto.currentPassword,
+      changePasswordDto.newPassword,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -61,5 +78,20 @@ export class UsersController {
       message: 'Đã xóa toàn bộ dữ liệu tài khoản thành công',
       deletedCounts: result.deletedCounts,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('settings')
+  async getSettings(@CurrentUser() user: PublicUser) {
+    return this.userSettingsService.getOrCreateSettings(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('settings/personality')
+  async updatePersonality(
+    @CurrentUser() user: PublicUser,
+    @Body() dto: UpdatePersonalityDto
+  ) {
+    return this.userSettingsService.updatePersonality(user.id, dto.personality);
   }
 }

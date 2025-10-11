@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicUser } from './types/public-user.type';
 import { UserEntity } from './types/user.entity';
+import * as bcrypt from 'bcryptjs';
 
 type CreateUserInput = {
   email: string;
@@ -50,6 +51,31 @@ export class UsersService {
     const { passwordHash: _ignored, ...rest } = user;
     void _ignored;
     return rest;
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    // Lấy user entity để có passwordHash
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Người dùng không tồn tại');
+    }
+
+    // Xác thực mật khẩu hiện tại
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu hiện tại không đúng');
+    }
+
+    // Hash mật khẩu mới
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    return { message: 'Mật khẩu đã được thay đổi thành công' };
   }
 
   async resetAccountData(userId: string): Promise<{

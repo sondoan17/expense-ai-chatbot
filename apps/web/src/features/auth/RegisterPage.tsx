@@ -1,9 +1,11 @@
 ﻿import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '../../hooks/api/useAuthApi';
+import { useToast } from '../../contexts/ToastContext';
 
 export function RegisterPage() {
   const registerMutation = useRegister();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -14,8 +16,11 @@ export function RegisterPage() {
     setError(null);
     try {
       await registerMutation.mutateAsync({ email, password, name: name || undefined });
+      toast.success('Đăng ký thành công', 'Chào mừng bạn đến với Mimi!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng ký thất bại');
+      const errorMessage = err instanceof Error ? err.message : 'Đăng ký thất bại';
+      setError(errorMessage);
+      toast.error('Đăng ký thất bại', errorMessage);
     }
   };
 

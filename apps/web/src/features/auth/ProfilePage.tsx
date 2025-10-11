@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Mail, Save } from 'lucide-react';
 import { UploadWidget } from '../../components/UploadWidget';
 import { useCurrentUser, useUpdateUser } from '../../hooks/api/useUserApi';
+import { useToast } from '../../contexts/ToastContext';
+import { SecondaryButton, PrimaryButton } from '../../components/ui';
 
 export function ProfilePage() {
   const { data: user } = useCurrentUser();
   const updateUserMutation = useUpdateUser();
   const navigate = useNavigate();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -29,9 +32,11 @@ export function ProfilePage() {
       await updateUserMutation.mutateAsync({
         name: formData.name,
       });
-      navigate('/dashboard');
+      toast.success('Thành công', 'Thông tin cá nhân đã được cập nhật!');
+      navigate('/app/dashboard');
     } catch (error) {
       console.error('Failed to update profile:', error);
+      toast.error('Lỗi cập nhật', 'Không thể cập nhật thông tin cá nhân');
     }
   };
 
@@ -42,21 +47,27 @@ export function ProfilePage() {
   const handleAvatarUpload = (avatarUrl: string) => {
     // Avatar is automatically updated via UploadWidget
     console.log('Avatar updated:', avatarUrl);
+    toast.success('Thành công', 'Ảnh đại diện đã được cập nhật!');
   };
 
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-lg hover:bg-slate-700/20 text-slate-400 hover:text-slate-100 transition"
+          className="text-slate-400 hover:text-slate-100 transition-all duration-200 p-2 rounded-xl hover:bg-gradient-to-r hover:from-slate-700/30 hover:to-slate-800/30 hover:border hover:border-slate-600/50 backdrop-blur-sm"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-slate-100">Chỉnh sửa thông tin</h1>
+        <div className="flex items-center gap-3">
+          <User size={24} className="text-sky-400" />
+          <h1 className="text-2xl font-bold text-slate-100">Chỉnh sửa thông tin</h1>
+        </div>
       </div>
+
+      <div className="max-w-2xl">
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Avatar Section */}
@@ -104,29 +115,24 @@ export function ProfilePage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-6">
-          <button
+          <SecondaryButton
             type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 px-4 py-3 bg-slate-700/50 text-slate-200 rounded-lg hover:bg-slate-700 transition"
+            className="flex-1"
           >
             Hủy
-          </button>
-          <button
+          </SecondaryButton>
+          <PrimaryButton
             type="submit"
-            disabled={updateUserMutation.isPending}
-            className="flex-1 px-4 py-3 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+            isLoading={updateUserMutation.isPending}
+            className="flex-1"
           >
-            {updateUserMutation.isPending ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <Save size={16} />
-                Lưu thay đổi
-              </>
-            )}
-          </button>
+            <Save size={16} />
+            Lưu thay đổi
+          </PrimaryButton>
         </div>
       </form>
+      </div>
     </div>
   );
 }

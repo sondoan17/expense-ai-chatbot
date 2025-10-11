@@ -1,9 +1,11 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForgotPassword } from '../../hooks/api/useAuthApi';
+import { useToast } from '../../contexts/ToastContext';
 
 export function ForgotPasswordPage() {
   const forgotPasswordMutation = useForgotPassword();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,8 +16,11 @@ export function ForgotPasswordPage() {
     try {
       await forgotPasswordMutation.mutateAsync({ email });
       setIsSuccess(true);
+      toast.success('Email đã được gửi', 'Vui lòng kiểm tra hộp thư để đặt lại mật khẩu');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể gửi email đặt lại mật khẩu');
+      const errorMessage = err instanceof Error ? err.message : 'Không thể gửi email đặt lại mật khẩu';
+      setError(errorMessage);
+      toast.error('Gửi email thất bại', errorMessage);
     }
   };
 

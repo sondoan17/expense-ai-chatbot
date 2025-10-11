@@ -74,6 +74,13 @@ function normalizeAgentPayload(payload: unknown): unknown {
   }
 
   const clone: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  
+  // Convert null values to undefined for Zod schema compatibility
+  for (const key in clone) {
+    if (clone[key] === null) {
+      delete clone[key];
+    }
+  }
   const occurredAt = clone.occurred_at;
 
   if (typeof occurredAt === 'string' && occurredAt.trim().length > 0) {

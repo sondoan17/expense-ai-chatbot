@@ -1,9 +1,11 @@
 import { FormEvent, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useResetPassword } from '../../hooks/api/useAuthApi';
+import { useToast } from '../../contexts/ToastContext';
 
 export function ResetPasswordPage() {
   const resetPasswordMutation = useResetPassword();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,8 +39,11 @@ export function ResetPasswordPage() {
     try {
       await resetPasswordMutation.mutateAsync({ token, newPassword });
       setIsSuccess(true);
+      toast.success('Đặt lại mật khẩu thành công', 'Bạn có thể đăng nhập với mật khẩu mới');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể đặt lại mật khẩu');
+      const errorMessage = err instanceof Error ? err.message : 'Không thể đặt lại mật khẩu';
+      setError(errorMessage);
+      toast.error('Đặt lại mật khẩu thất bại', errorMessage);
     }
   };
 

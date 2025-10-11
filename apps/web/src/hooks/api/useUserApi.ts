@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { apiClient, extractErrorMessage, resetAccount, ResetAccountRequest, ResetAccountResponse } from '../../api/client';
+import { apiClient, extractErrorMessage, resetAccount, ResetAccountRequest, ResetAccountResponse, changePassword, ChangePasswordRequest, ChangePasswordResponse } from '../../api/client';
 import { UserDto, MessageResponse } from '../../api/types';
 
 interface UpdateUserInput {
@@ -78,6 +78,17 @@ export function useLogout() {
       queryClient.clear();
       navigate('/login', { replace: true });
       throw new Error(extractErrorMessage(error, 'Đăng xuất thất bại'));
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+      return changePassword(data);
+    },
+    onError: (error) => {
+      throw new Error(extractErrorMessage(error, 'Thay đổi mật khẩu thất bại'));
     },
   });
 }

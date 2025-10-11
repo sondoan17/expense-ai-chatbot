@@ -19,6 +19,7 @@ import {
 } from './handlers';
 import { InsightsService } from './services/insights.service';
 import { AIResponseService } from './services/ai-response.service';
+import { PersonalityReplyService } from './services/personality-reply.service';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AIResponseService } from './services/ai-response.service';
     CategoryResolverService,
     InsightsService,
     AIResponseService,
+    PersonalityReplyService,
   ],
 })
 export class AgentModule {}

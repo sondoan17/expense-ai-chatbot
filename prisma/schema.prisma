@@ -35,6 +35,15 @@ enum ChatMessageStatus {
   ERROR
 }
 
+enum AiPersonality {
+  FRIENDLY
+  PROFESSIONAL
+  CASUAL
+  HUMOROUS
+  INSULTING
+  ENTHUSIASTIC
+}
+
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -47,6 +56,7 @@ model User {
   budgets             Budget[]
   chatMessages        ChatMessage[]
   passwordResetTokens PasswordResetToken[]
+  settings            UserSettings?
 }
 
 model Category {
@@ -185,6 +195,15 @@ model ChatMessage {
   createdAt DateTime          @default(now())
 
   @@index([userId, createdAt])
+}
+
+model UserSettings {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiPersonality AiPersonality @default(FRIENDLY)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model PasswordResetToken {

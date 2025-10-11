@@ -46,7 +46,7 @@ export function AppLayout() {
             <p className="m-0 mt-1 text-sm text-slate-400">Trợ lý tài chính cá nhân</p>
           </div>
           <button
-            className="md:hidden text-slate-400 hover:text-slate-100 transition p-1 rounded-lg hover:bg-slate-700/20"
+            className="md:hidden text-slate-400 hover:text-slate-100 transition-all duration-200 p-2 rounded-xl hover:bg-gradient-to-r hover:from-slate-700/30 hover:to-slate-800/30 hover:border hover:border-slate-600/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           >
             <X size={20} />
@@ -98,7 +98,7 @@ export function AppLayout() {
         <div className="mt-auto flex flex-col gap-3">
           <button
             onClick={() => navigate('/app/profile')}
-            className="flex items-center gap-3 rounded-2xl bg-slate-300/10 p-3 hover:bg-slate-300/20 transition cursor-pointer text-left w-full"
+            className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-slate-300/10 to-slate-400/10 border border-slate-600/20 p-3 hover:from-slate-300/20 hover:to-slate-400/20 hover:border-slate-500/30 transition-all duration-200 cursor-pointer text-left w-full backdrop-blur-sm"
           >
             <div className="grid h-10 w-10 place-items-center rounded-full bg-sky-400/20 font-bold">
               {user?.avatar ? (
@@ -113,7 +113,7 @@ export function AppLayout() {
             </div>
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-xl bg-red-500/15 px-4 py-2 font-semibold text-rose-200 transition hover:bg-red-500/25"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500/15 to-rose-500/15 border border-red-500/20 px-4 py-2 font-semibold text-rose-200 transition-all duration-200 hover:from-red-500/25 hover:to-rose-500/25 hover:border-red-400/30 backdrop-blur-sm"
             onClick={logout}
           >
             <LogOut size={18} /> Đăng xuất
@@ -130,7 +130,7 @@ export function AppLayout() {
         <header className="flex items-center justify-between px-6 py-5">
           {/* Toggle Button - Always visible */}
           <button
-            className="text-slate-400 hover:text-slate-100 transition p-2 rounded-lg hover:bg-slate-700/20"
+            className="text-slate-400 hover:text-slate-100 transition-all duration-200 p-2 rounded-xl hover:bg-gradient-to-r hover:from-slate-700/30 hover:to-slate-800/30 hover:border hover:border-slate-600/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             <Menu size={22} />

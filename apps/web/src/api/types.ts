@@ -154,3 +154,19 @@ export interface AgentChatResponse {
   actions?: AgentActionOption[];
   error?: string;
 }
+
+export type AiPersonality = 
+  | 'FRIENDLY'
+  | 'PROFESSIONAL' 
+  | 'CASUAL'
+  | 'HUMOROUS'
+  | 'INSULTING'
+  | 'ENTHUSIASTIC';
+
+export interface UserSettings {
+  id: string;
+  userId: string;
+  aiPersonality: AiPersonality;
+  createdAt: string;
+  updatedAt: string;
+}

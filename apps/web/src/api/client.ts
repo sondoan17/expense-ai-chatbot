@@ -1,4 +1,5 @@
 ﻿import axios, { AxiosError, isAxiosError } from 'axios';
+import { UserSettings } from './types';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api';
 
@@ -30,6 +31,21 @@ export function isNetworkError(error: unknown): boolean {
 
 export type ApiError = AxiosError<{ message?: string | string[] }>;
 
+// Change Password API
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
+export async function changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+  const response = await apiClient.post<ChangePasswordResponse>('/users/change-password', data);
+  return response.data;
+}
+
 // Reset Account API
 export interface ResetAccountRequest {
   password: string;
@@ -49,5 +65,15 @@ export interface ResetAccountResponse {
 
 export async function resetAccount(data: ResetAccountRequest): Promise<ResetAccountResponse> {
   const response = await apiClient.post<ResetAccountResponse>('/users/reset-account', data);
+  return response.data;
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+  const response = await apiClient.get<UserSettings>('/users/settings');
+  return response.data;
+}
+
+export async function updatePersonality(personality: string): Promise<UserSettings> {
+  const response = await apiClient.patch<UserSettings>('/users/settings/personality', { personality });
   return response.data;
 }

@@ -134,7 +134,6 @@ export function OverviewTab({
 
       {/* Tổng quan */}
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-slate-200">Tổng quan</h3>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
           <StatCard
             label="Chi"

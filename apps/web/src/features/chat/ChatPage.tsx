@@ -9,6 +9,8 @@ import { enqueueAgentMessage } from '../../offline/offlineQueue';
 import { useOfflineAgentSync } from '../../offline/useOfflineAgentSync';
 import { useOnlineStatus } from '../../hooks/utils/useOnlineStatus';
 import { useChatHistory, useSendMessage, useActionHandler } from '../../hooks/api/useChatApi';
+import { useToast } from '../../contexts/ToastContext';
+import { ActionButton } from '../../components/ui';
 import './components/chat.css';
 
 interface ChatMessageItem {
@@ -80,6 +82,7 @@ export function ChatPage() {
   const scrollPositionRef = useRef<{ height: number; top: number } | null>(null);
   const hasInitiallyLoaded = useRef(false);
   const online = useOnlineStatus();
+  const toast = useToast();
 
   // Reset initial load flag when component mounts (for reload)
   useEffect(() => {
@@ -377,6 +380,7 @@ export function ChatPage() {
           const message = extractErrorMessage(error, 'Không thể gửi tin nhắn.');
           updatePendingMessage(outgoing.id, (msg) => ({ ...msg, status: 'error' }));
           addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
+          toast.error('Lỗi gửi tin nhắn', message);
         }
       }
     },
@@ -387,6 +391,7 @@ export function ChatPage() {
       sendMessageMutation,
       updatePendingMessage,
       scrollToBottomWithRetry,
+      toast,
     ],
   );
 
@@ -405,6 +410,7 @@ export function ChatPage() {
             localOnly: true,
           }),
         );
+        toast.warning('Ngoại tuyến', 'Không thể xử lý khi đang ngoại tuyến');
         return;
       }
 
@@ -438,6 +444,7 @@ export function ChatPage() {
         updatePendingMessage(userActionMessage.id, (msg) => ({ ...msg, status: 'error' }));
         updatePendingMessage(sourceMessageId, (msg) => ({ ...msg, actionProcessing: false }));
         addPendingMessage(createMessage('assistant', message, 'error', { localOnly: true }));
+        toast.error('Lỗi xử lý', message);
       }
     },
     [
@@ -447,20 +454,22 @@ export function ChatPage() {
       updatePendingMessage,
       scrollToBottomWithRetry,
       actionHandlerMutation,
+      toast,
     ],
   );
 
   const suggestionButtons = useMemo(
     () =>
       SUGGESTIONS.map((item) => (
-        <button
+        <ActionButton
           key={item}
-          className="shrink-0 quick-action text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-full bg-slate-700/30 hover:bg-slate-600/40 text-slate-300 hover:text-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          size="sm"
+          className="shrink-0 quick-action text-xs sm:text-sm"
           onClick={() => handleSend(item)}
           disabled={sendMessageMutation.isPending}
         >
           {item}
-        </button>
+        </ActionButton>
       )),
     [handleSend, sendMessageMutation.isPending],
   );
@@ -512,14 +521,15 @@ export function ChatPage() {
               {message.actions?.length ? (
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                   {message.actions.map((action) => (
-                    <button
+                    <ActionButton
                       key={`${message.id}-${action.id}`}
-                      className="rounded-lg sm:rounded-xl bg-indigo-400/20 px-2 py-1 sm:px-3 text-xs sm:text-sm text-slate-100 transition hover:bg-indigo-400/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                      size="sm"
+                      className="text-xs sm:text-sm"
                       onClick={() => handleActionClick(message.id, action)}
                       disabled={message.actionProcessing || !online || message.status !== 'sent'}
                     >
                       {action.label}
-                    </button>
+                    </ActionButton>
                   ))}
                 </div>
               ) : null}
@@ -530,7 +540,7 @@ export function ChatPage() {
         {/* Scroll to bottom button */}
         {showScrollButton && (
           <button
-            className="fixed bottom-[120px] right-4 sm:right-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-full border border-slate-700/40 bg-slate-900/90 text-base sm:text-lg font-bold text-slate-100 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-indigo-400/20"
+            className="fixed bottom-[120px] right-4 sm:right-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-slate-600/50 bg-gradient-to-r from-slate-800/90 to-slate-900/90 text-base sm:text-lg font-bold text-slate-100 shadow-lg backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500/20 hover:to-purple-500/20 hover:border-indigo-400/50"
             onClick={scrollToBottom}
             title="Xuống tin nhắn mới nhất"
           >

@@ -10,9 +10,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PublicUser } from '../users/types/public-user.type';
 import { AgentActionDto } from './dto/agent-action.dto';
 import { AgentChatResult } from './types/agent-response.type';
-import { ChatMessageStatus, ChatRole, Currency } from '@prisma/client';
+import { ChatMessageStatus, ChatRole, Currency, AiPersonality } from '@prisma/client';
 
-import { AgentLanguage, DEFAULT_LANGUAGE, DEFAULT_TIMEZONE } from './agent.constants';
+import { AgentLanguage, DEFAULT_LANGUAGE, DEFAULT_TIMEZONE, buildSystemPromptWithPersonality } from './agent.constants';
 import {
   buildClassificationErrorReply,
   buildEmptyMessageReply,
@@ -22,7 +22,9 @@ import {
   buildUndoNotSupportedReply,
   buildUnsupportedIntentReply,
 } from './utils/agent-response.utils';
-import { buildClassificationPrompt } from './utils/classification.util';
+import { UserSettingsService } from '../users/users-settings.service';
+import { PersonalityReplyService } from './services/personality-reply.service';
+import { PERSONALITY_PROFILES } from './types/personality.types';
 import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import {
   BudgetHandlerService,
@@ -63,6 +65,8 @@ export class AgentService {
     private readonly recurringHandler: RecurringHandlerService,
     private readonly queryHandler: QueryHandlerService,
     private readonly categoryResolver: CategoryResolverService,
+    private readonly userSettingsService: UserSettingsService,
+    private readonly personalityReplyService: PersonalityReplyService,
   ) {}
 
   async chat(user: PublicUser, message: string): Promise<AgentChatResult> {
@@ -78,9 +82,17 @@ export class AgentService {
 
     await this.persistUserMessage(user.id, trimmed);
 
+    // Load user personality settings
+    const settings = await this.userSettingsService.getOrCreateSettings(user.id);
+    const personalityProfile = PERSONALITY_PROFILES[settings.aiPersonality];
+
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
     const now = new Date();
-    const systemPrompt = buildClassificationPrompt(now, timezone);
+    const systemPrompt = buildSystemPromptWithPersonality(
+      personalityProfile,
+      now.toISOString(),
+      timezone
+    );
 
     const chatMessages: HyperbolicMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -170,6 +182,9 @@ export class AgentService {
           break;
         case 'small_talk':
           result = this.handleSmallTalk(user, payload, language);
+          break;
+        case 'change_personality':
+          result = await this.handleChangePersonality(user, payload, language);
           break;
         default:
           result = {
@@ -322,6 +337,10 @@ export class AgentService {
     payload: AgentPayload,
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
+    // Load user personality settings
+    const settings = await this.userSettingsService.getOrCreateSettings(user.id);
+    const personalityProfile = PERSONALITY_PROFILES[settings.aiPersonality];
+
     // Gọi handler để tạo transaction
     const result = await this.transactionHandler.handleAddTransaction(
       user,
@@ -349,6 +368,20 @@ export class AgentService {
       if (warnings.length > 0) {
         result.reply = `${result.reply}\n\n⚠️ ${warnings.join('\n')}`;
       }
+    }
+
+    // Rewrite reply với personality
+    try {
+      const context = `User message: "${originalMessage}"`;
+      result.reply = await this.personalityReplyService.rewriteWithPersonality(
+        result.reply,
+        personalityProfile,
+        language,
+        context
+      );
+    } catch (error) {
+      this.logger.error('Failed to rewrite reply with personality', error);
+      // Fallback to original reply if rewrite fails
     }
 
     return result;
@@ -478,5 +511,63 @@ export class AgentService {
 
   private hasVietnameseCharacters(message: string): boolean {
     return /[ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/iu.test(message);
+  }
+
+  private async handleChangePersonality(
+    user: PublicUser,
+    payload: AgentPayload,
+    language: AgentLanguage
+  ): Promise<AgentChatResult> {
+    // Extract personality from payload (add new field to AgentPayload schema)
+    const newPersonality = (payload as AgentPayload & { personality?: string }).personality; // e.g., 'FRIENDLY'
+    
+    if (!newPersonality || !Object.values(AiPersonality).includes(newPersonality)) {
+      return {
+        reply: this.buildInvalidPersonalityReply(language),
+        intent: 'change_personality',
+        parsed: payload
+      };
+    }
+    
+    await this.userSettingsService.updatePersonality(user.id, newPersonality);
+    
+    return {
+      reply: this.buildPersonalityChangedReply(language, newPersonality),
+      intent: 'change_personality',
+      parsed: payload
+    };
+  }
+
+  private buildPersonalityChangedReply(language: AgentLanguage, personality: string): string {
+    const personalityLabels = {
+      vi: {
+        FRIENDLY: 'Thân thiện',
+        PROFESSIONAL: 'Chuyên nghiệp',
+        CASUAL: 'Thoải mái',
+        HUMOROUS: 'Hài hước',
+        INSULTING: 'Xúc phạm',
+        ENTHUSIASTIC: 'Nhiệt tình'
+      },
+      en: {
+        FRIENDLY: 'Friendly',
+        PROFESSIONAL: 'Professional',
+        CASUAL: 'Casual',
+        HUMOROUS: 'Humorous',
+        INSULTING: 'Insulting',
+        ENTHUSIASTIC: 'Enthusiastic'
+      }
+    };
+    
+    const label = personalityLabels[language][personality as keyof typeof personalityLabels[typeof language]] || personality;
+    
+    return language === 'vi'
+      ? `Đã chuyển tính cách sang "${label}". Từ giờ mình sẽ trò chuyện theo phong cách này nhé!`
+      : `Personality changed to "${label}". I'll interact with this style from now on!`;
+  }
+
+  private buildInvalidPersonalityReply(language: AgentLanguage): string {
+    return language === 'vi'
+      ? 'Tính cách không hợp lệ. Vui lòng chọn: Thân thiện, Chuyên nghiệp, Thoải mái, Hài hước, Xúc phạm, hoặc Nhiệt tình.'
+      : 'Invalid personality. Please choose: Friendly, Professional, Casual, Humorous, Insulting, or Enthusiastic.';
   }
 }
