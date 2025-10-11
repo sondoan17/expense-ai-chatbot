@@ -31,6 +31,7 @@ import {
   QueryHandlerService,
   CategoryResolverService,
 } from './handlers';
+import { TransactionResult } from './types/internal.types';
 
 const BUDGET_ACTION_PAYLOAD_SCHEMA = z.object({
   budgetId: z.string().min(1),
@@ -321,7 +322,36 @@ export class AgentService {
     payload: AgentPayload,
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
-    return this.transactionHandler.handleAddTransaction(user, originalMessage, payload, language);
+    // Gọi handler để tạo transaction
+    const result = await this.transactionHandler.handleAddTransaction(
+      user,
+      originalMessage,
+      payload,
+      language,
+    );
+
+    // Nếu tạo transaction thành công và là expense, check budget
+    if (
+      result.data &&
+      typeof result.data === 'object' &&
+      result.data !== null &&
+      'transaction' in result.data &&
+      payload.intent === 'add_expense'
+    ) {
+      const transactionData = result.data as { transaction: TransactionResult };
+      const warnings = await this.budgetHandler.collectBudgetWarnings(
+        user,
+        transactionData.transaction,
+        language,
+      );
+
+      // Append warnings vào reply
+      if (warnings.length > 0) {
+        result.reply = `${result.reply}\n\n⚠️ ${warnings.join('\n')}`;
+      }
+    }
+
+    return result;
   }
 
   private async persistUserMessage(userId: string, content: string): Promise<void> {

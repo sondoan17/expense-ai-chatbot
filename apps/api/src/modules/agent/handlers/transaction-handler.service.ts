@@ -27,7 +27,6 @@ export class TransactionHandlerService {
     originalMessage: string,
     payload: AgentPayload,
     language: AgentLanguage,
-    budgetWarnings: string[] = [],
   ): Promise<AgentChatResult> {
     if (!payload.amount || payload.amount <= 0) {
       return {
@@ -67,15 +66,11 @@ export class TransactionHandlerService {
     const amountLabel = formatCurrency(transaction.amount, transaction.currency, language);
     const categoryLabel = transaction.category?.name ?? categoryName ?? null;
 
-    let reply = buildTransactionSavedReply(language, {
+    const reply = buildTransactionSavedReply(language, {
       type,
       amount: amountLabel,
       category: categoryLabel,
     });
-
-    if (budgetWarnings.length > 0) {
-      reply = `${reply}\n${budgetWarnings.join('\n')}`;
-    }
 
     return {
       reply,

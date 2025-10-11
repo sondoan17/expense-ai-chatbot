@@ -12,10 +12,10 @@ import { AgentChatResult } from '../types/agent-response.type';
 import { AgentLanguage, DEFAULT_TIMEZONE } from '../agent.constants';
 import {
   buildAskBudgetAmountReply,
-  buildBudgetExceededWarning,
   buildBudgetNotFoundReply,
   buildBudgetSetReply,
   buildBudgetStatusReply,
+  buildBudgetWarningByThreshold,
   buildRecurringBudgetRuleCreatedReply,
   buildRecurringBudgetRuleUpdatedReply,
   describeRecurringSchedule,
@@ -665,6 +665,7 @@ export class BudgetHandlerService {
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
     const occurredAt = DateTime.fromISO(transaction.occurredAt).setZone(timezone);
 
+    // Chỉ tìm budget của category cụ thể (nếu có) theo yêu cầu 1a
     const where: Prisma.BudgetWhereInput = {
       userId: user.id,
       month: occurredAt.month,
@@ -673,9 +674,10 @@ export class BudgetHandlerService {
     };
 
     if (transaction.category?.id) {
-      where.OR = [{ categoryId: transaction.category.id }, { categoryId: null }];
+      where.categoryId = transaction.category.id;
     } else {
-      where.categoryId = null;
+      // Nếu không có category, không check budget
+      return [];
     }
 
     const budgets = await this.prisma.budget.findMany({ where });
@@ -688,9 +690,27 @@ export class BudgetHandlerService {
       budgets.map((budget) => this.budgetsService.status(user.id, budget.id)),
     );
 
-    return statuses
-      .filter((status) => status.overBudget)
-      .map((status) => buildBudgetExceededWarning(language, status));
+    // Sử dụng buildBudgetWarningByThreshold để tạo message phù hợp
+    const warnings = statuses
+      .map((status) => buildBudgetWarningByThreshold(language, status))
+      .filter((warning): warning is string => warning !== null);
+
+    // Sắp xếp warnings theo mức độ nghiêm trọng (100% → 90% → 80%)
+    return warnings.sort((a, b) => {
+      const aIsOverBudget = a.includes('vượt') || a.includes('exceeded');
+      const bIsOverBudget = b.includes('vượt') || b.includes('exceeded');
+      
+      if (aIsOverBudget && !bIsOverBudget) return -1;
+      if (!aIsOverBudget && bIsOverBudget) return 1;
+      
+      const aIsAlmost = a.includes('Gần hết') || a.includes('Almost');
+      const bIsAlmost = b.includes('Gần hết') || b.includes('Almost');
+      
+      if (aIsAlmost && !bIsAlmost) return -1;
+      if (!aIsAlmost && bIsAlmost) return 1;
+      
+      return 0;
+    });
   }
 
   private isRecurringUpdateMessage(message: string): boolean {

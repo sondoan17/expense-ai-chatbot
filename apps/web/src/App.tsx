@@ -8,6 +8,7 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { ProfilePage } from './features/auth/ProfilePage';
 import { ChatPage } from './features/chat/ChatPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { AppLayout } from './components/AppLayout';
 import { Suspense } from 'react';
 
@@ -51,6 +52,14 @@ export function App() {
                 element={
                   <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
                     <ProfilePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                    <SettingsPage />
                   </Suspense>
                 }
               />

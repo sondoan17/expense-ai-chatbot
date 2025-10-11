@@ -44,6 +44,7 @@ export function ProfilePage() {
     console.log('Avatar updated:', avatarUrl);
   };
 
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}

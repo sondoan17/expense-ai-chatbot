@@ -51,4 +51,78 @@ export class UsersService {
     void _ignored;
     return rest;
   }
+
+  async resetAccountData(userId: string): Promise<{
+    deletedCounts: {
+      transactions: number;
+      chatMessages: number;
+      recurringRules: number;
+      budgets: number;
+      recurringBudgetRules: number;
+      passwordResetTokens: number;
+    };
+  }> {
+    return this.prisma.$transaction(async (tx) => {
+      // Xóa RecurringRunLog trước (cascade từ RecurringRule)
+      const recurringRunLogs = await tx.recurringRunLog.deleteMany({
+        where: {
+          recurringRule: {
+            userId,
+          },
+        },
+      });
+      void recurringRunLogs;
+
+      // Xóa RecurringRule
+      const recurringRules = await tx.recurringRule.deleteMany({
+        where: { userId },
+      });
+
+      // Xóa RecurringBudgetRunLog (cascade từ RecurringBudgetRule)
+      const recurringBudgetRunLogs = await tx.recurringBudgetRunLog.deleteMany({
+        where: {
+          recurringBudgetRule: {
+            userId,
+          },
+        },
+      });
+      void recurringBudgetRunLogs;
+
+      // Xóa RecurringBudgetRule
+      const recurringBudgetRules = await tx.recurringBudgetRule.deleteMany({
+        where: { userId },
+      });
+
+      // Xóa ChatMessage
+      const chatMessages = await tx.chatMessage.deleteMany({
+        where: { userId },
+      });
+
+      // Xóa Transaction
+      const transactions = await tx.transaction.deleteMany({
+        where: { userId },
+      });
+
+      // Xóa Budget
+      const budgets = await tx.budget.deleteMany({
+        where: { userId },
+      });
+
+      // Xóa PasswordResetToken
+      const passwordResetTokens = await tx.passwordResetToken.deleteMany({
+        where: { userId },
+      });
+
+      return {
+        deletedCounts: {
+          transactions: transactions.count,
+          chatMessages: chatMessages.count,
+          recurringRules: recurringRules.count,
+          budgets: budgets.count,
+          recurringBudgetRules: recurringBudgetRules.count,
+          passwordResetTokens: passwordResetTokens.count,
+        },
+      };
+    });
+  }
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { apiClient, extractErrorMessage } from '../../api/client';
+import { apiClient, extractErrorMessage, resetAccount, ResetAccountRequest, ResetAccountResponse } from '../../api/client';
 import { UserDto, MessageResponse } from '../../api/types';
 
 interface UpdateUserInput {
@@ -78,6 +78,32 @@ export function useLogout() {
       queryClient.clear();
       navigate('/login', { replace: true });
       throw new Error(extractErrorMessage(error, 'Đăng xuất thất bại'));
+    },
+  });
+}
+
+export function useResetAccount() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: async (data: ResetAccountRequest): Promise<ResetAccountResponse> => {
+      return resetAccount(data);
+    },
+    onSuccess: () => {
+      // Invalidate all related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['chat'] });
+      queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      
+      // Navigate to dashboard after successful reset
+      navigate('/app/dashboard', { replace: true });
+    },
+    onError: (error) => {
+      throw new Error(extractErrorMessage(error, 'Xóa dữ liệu tài khoản thất bại'));
     },
   });
 }

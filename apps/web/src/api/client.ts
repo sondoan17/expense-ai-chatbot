@@ -29,3 +29,25 @@ export function isNetworkError(error: unknown): boolean {
 }
 
 export type ApiError = AxiosError<{ message?: string | string[] }>;
+
+// Reset Account API
+export interface ResetAccountRequest {
+  password: string;
+}
+
+export interface ResetAccountResponse {
+  message: string;
+  deletedCounts: {
+    transactions: number;
+    chatMessages: number;
+    recurringRules: number;
+    budgets: number;
+    recurringBudgetRules: number;
+    passwordResetTokens: number;
+  };
+}
+
+export async function resetAccount(data: ResetAccountRequest): Promise<ResetAccountResponse> {
+  const response = await apiClient.post<ResetAccountResponse>('/users/reset-account', data);
+  return response.data;
+}

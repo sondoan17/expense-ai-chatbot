@@ -2,7 +2,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/api/useAuth';
 import { useOnlineStatus } from '../hooks/utils/useOnlineStatus';
-import { WifiOff, Wifi, MessageCircle, PieChart, LogOut, Menu, X } from 'lucide-react';
+import { WifiOff, Wifi, MessageCircle, PieChart, LogOut, Menu, X, Settings } from 'lucide-react';
 import { useUserStore } from '../store/user.store';
 import { UserDto } from '../api/types';
 
@@ -79,6 +79,19 @@ export function AppLayout() {
           >
             <PieChart size={18} />
             <span>Tổng quan</span>
+          </NavLink>
+          <NavLink
+            to="settings"
+            className={({ isActive }) =>
+              `${
+                isActive
+                  ? 'bg-sky-400/20 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
+              } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
+            }
+          >
+            <Settings size={18} />
+            <span>Cài đặt</span>
           </NavLink>
         </nav>
 

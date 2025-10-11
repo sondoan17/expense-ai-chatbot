@@ -494,3 +494,54 @@ export function getBudgetTargetLabel(
 export function getOtherCategoryLabel(language: AgentLanguage): string {
   return language === 'vi' ? 'Khác' : 'Other';
 }
+
+export function buildBudgetNearLimitWarning(
+  language: AgentLanguage,
+  status: BudgetStatusResult,
+): string {
+  const target = getBudgetTargetLabel(language, status.budget.category?.name ?? null);
+  const monthLabel = formatMonthYear(status.budget.month, status.budget.year, language);
+  const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
+  const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
+  const percentLabel = `${status.percentage}%`;
+  const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
+
+  return language === 'vi'
+    ? `Bạn đã dùng ${amountLabel} / ${limitLabel} (${percentLabel}) cho ${target} trong ${monthLabel}. Còn lại ${remainingLabel}. Hãy cân nhắc chi tiêu để không vượt ngân sách nhé.`
+    : `You've spent ${amountLabel} / ${limitLabel} (${percentLabel}) on ${target} in ${monthLabel}. Remaining ${remainingLabel}. Please consider your spending to stay within budget.`;
+}
+
+export function buildBudgetAlmostExceededWarning(
+  language: AgentLanguage,
+  status: BudgetStatusResult,
+): string {
+  const target = getBudgetTargetLabel(language, status.budget.category?.name ?? null);
+  const monthLabel = formatMonthYear(status.budget.month, status.budget.year, language);
+  const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
+  const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
+  const percentLabel = `${status.percentage}%`;
+  const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
+
+  return language === 'vi'
+    ? `Bạn đã dùng ${amountLabel} / ${limitLabel} (${percentLabel}) cho ${target} trong ${monthLabel}. Còn lại ${remainingLabel}. Gần hết ngân sách rồi!`
+    : `You've spent ${amountLabel} / ${limitLabel} (${percentLabel}) on ${target} in ${monthLabel}. Remaining ${remainingLabel}. Almost out of budget!`;
+}
+
+export function buildBudgetWarningByThreshold(
+  language: AgentLanguage,
+  status: BudgetStatusResult,
+): string | null {
+  if (status.overBudget) {
+    return buildBudgetExceededWarning(language, status);
+  }
+  
+  if (status.percentage >= 90) {
+    return buildBudgetAlmostExceededWarning(language, status);
+  }
+  
+  if (status.percentage >= 80) {
+    return buildBudgetNearLimitWarning(language, status);
+  }
+  
+  return null;
+}
