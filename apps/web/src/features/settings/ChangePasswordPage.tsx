@@ -50,7 +50,7 @@ export function ChangePasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -60,7 +60,7 @@ export function ChangePasswordPage() {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       });
-      
+
       toast.success('Thành công', 'Mật khẩu đã được thay đổi thành công!');
       navigate('/app/settings');
     } catch (error) {
@@ -98,114 +98,115 @@ export function ChangePasswordPage() {
       </div>
 
       <div className="max-w-2xl">
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Current Password */}
-        <div>
-          <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-200 mb-2">
-            Mật khẩu hiện tại
-          </label>
-          <div className="relative">
-            <input
-              id="currentPassword"
-              type={showPasswords.current ? 'text' : 'password'}
-              value={formData.currentPassword}
-              onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-              className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
-                errors.currentPassword ? 'border-red-500' : 'border-slate-600'
-              }`}
-              placeholder="Nhập mật khẩu hiện tại"
-            />
-            <button
-              type="button"
-              onClick={() => togglePasswordVisibility('current')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Current Password */}
+          <div>
+            <label
+              htmlFor="currentPassword"
+              className="block text-sm font-medium text-slate-200 mb-2"
             >
-              {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+              Mật khẩu hiện tại
+            </label>
+            <div className="relative">
+              <input
+                id="currentPassword"
+                type={showPasswords.current ? 'text' : 'password'}
+                value={formData.currentPassword}
+                onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.currentPassword ? 'border-red-500' : 'border-slate-600'
+                }`}
+                placeholder="Nhập mật khẩu hiện tại"
+              />
+              <button
+                type="button"
+                onClick={() => togglePasswordVisibility('current')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {errors.currentPassword && (
+              <p className="text-red-400 text-sm mt-1">{errors.currentPassword}</p>
+            )}
           </div>
-          {errors.currentPassword && (
-            <p className="text-red-400 text-sm mt-1">{errors.currentPassword}</p>
-          )}
-        </div>
 
-        {/* New Password */}
-        <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-slate-200 mb-2">
-            Mật khẩu mới
-          </label>
-          <div className="relative">
-            <input
-              id="newPassword"
-              type={showPasswords.new ? 'text' : 'password'}
-              value={formData.newPassword}
-              onChange={(e) => handleInputChange('newPassword', e.target.value)}
-              className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
-                errors.newPassword ? 'border-red-500' : 'border-slate-600'
-              }`}
-              placeholder="Nhập mật khẩu mới"
-            />
-            <button
-              type="button"
-              onClick={() => togglePasswordVisibility('new')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+          {/* New Password */}
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-slate-200 mb-2">
+              Mật khẩu mới
+            </label>
+            <div className="relative">
+              <input
+                id="newPassword"
+                type={showPasswords.new ? 'text' : 'password'}
+                value={formData.newPassword}
+                onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.newPassword ? 'border-red-500' : 'border-slate-600'
+                }`}
+                placeholder="Nhập mật khẩu mới"
+              />
+              <button
+                type="button"
+                onClick={() => togglePasswordVisibility('new')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {errors.newPassword && (
+              <p className="text-red-400 text-sm mt-1">{errors.newPassword}</p>
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-slate-200 mb-2"
             >
-              {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+              Xác nhận mật khẩu mới
+            </label>
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                  errors.confirmPassword ? 'border-red-500' : 'border-slate-600'
+                }`}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+              <button
+                type="button"
+                onClick={() => togglePasswordVisibility('confirm')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
+            )}
           </div>
-          {errors.newPassword && (
-            <p className="text-red-400 text-sm mt-1">{errors.newPassword}</p>
-          )}
-        </div>
 
-        {/* Confirm Password */}
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-200 mb-2">
-            Xác nhận mật khẩu mới
-          </label>
-          <div className="relative">
-            <input
-              id="confirmPassword"
-              type={showPasswords.confirm ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              className={`w-full px-4 py-3 pr-12 bg-slate-800/50 border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
-                errors.confirmPassword ? 'border-red-500' : 'border-slate-600'
-              }`}
-              placeholder="Nhập lại mật khẩu mới"
-            />
-            <button
-              type="button"
-              onClick={() => togglePasswordVisibility('confirm')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-6">
+            <SecondaryButton type="button" onClick={() => navigate(-1)} className="flex-1">
+              Hủy
+            </SecondaryButton>
+            <PrimaryButton
+              type="submit"
+              isLoading={changePasswordMutation.isPending}
+              className="flex-1"
             >
-              {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+              <Save size={16} />
+              Đổi mật khẩu
+            </PrimaryButton>
           </div>
-          {errors.confirmPassword && (
-            <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-6">
-          <SecondaryButton
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex-1"
-          >
-            Hủy
-          </SecondaryButton>
-          <PrimaryButton
-            type="submit"
-            isLoading={changePasswordMutation.isPending}
-            className="flex-1"
-          >
-            <Save size={16} />
-            Đổi mật khẩu
-          </PrimaryButton>
-        </div>
-      </form>
+        </form>
       </div>
     </div>
   );

@@ -7,19 +7,19 @@ export class UserSettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOrCreateSettings(userId: string): Promise<UserSettings> {
-    let settings = await this.prisma.userSettings.findUnique({ 
-      where: { userId } 
+    let settings = await this.prisma.userSettings.findUnique({
+      where: { userId },
     });
-    
+
     if (!settings) {
       settings = await this.prisma.userSettings.create({
-        data: { 
-          userId, 
-          aiPersonality: AiPersonality.FRIENDLY 
-        }
+        data: {
+          userId,
+          aiPersonality: AiPersonality.FRIENDLY,
+        },
       });
     }
-    
+
     return settings;
   }
 
@@ -27,7 +27,7 @@ export class UserSettingsService {
     return this.prisma.userSettings.upsert({
       where: { userId },
       update: { aiPersonality: personality },
-      create: { userId, aiPersonality: personality }
+      create: { userId, aiPersonality: personality },
     });
   }
 }

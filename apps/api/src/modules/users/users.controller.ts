@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Body, UseGuards, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PublicUser } from './types/public-user.type';
@@ -55,10 +63,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Post('reset-account')
-  async resetAccount(
-    @CurrentUser() user: PublicUser,
-    @Body() resetAccountDto: ResetAccountDto,
-  ) {
+  async resetAccount(@CurrentUser() user: PublicUser, @Body() resetAccountDto: ResetAccountDto) {
     // Lấy user entity để có passwordHash
     const userEntity = await this.usersService.findById(user.id);
     if (!userEntity) {
@@ -88,10 +93,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('settings/personality')
-  async updatePersonality(
-    @CurrentUser() user: PublicUser,
-    @Body() dto: UpdatePersonalityDto
-  ) {
+  async updatePersonality(@CurrentUser() user: PublicUser, @Body() dto: UpdatePersonalityDto) {
     return this.userSettingsService.updatePersonality(user.id, dto.personality);
   }
 }

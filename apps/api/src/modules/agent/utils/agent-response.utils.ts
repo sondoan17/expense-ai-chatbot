@@ -534,14 +534,14 @@ export function buildBudgetWarningByThreshold(
   if (status.overBudget) {
     return buildBudgetExceededWarning(language, status);
   }
-  
+
   if (status.percentage >= 90) {
     return buildBudgetAlmostExceededWarning(language, status);
   }
-  
+
   if (status.percentage >= 80) {
     return buildBudgetNearLimitWarning(language, status);
   }
-  
+
   return null;
 }

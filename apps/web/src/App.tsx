@@ -22,61 +22,61 @@ export function App() {
         <AuthProvider>
           <ToastProvider>
             <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route
-              path="/app"
-              element={
-                <RequireAuth>
-                  <AppLayout />
-                </RequireAuth>
-              }
-            >
-              <Route index element={<Navigate to="chat" replace />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route
-                path="chat"
+                path="/app"
                 element={
-                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
-                    <ChatPage />
-                  </Suspense>
+                  <RequireAuth>
+                    <AppLayout />
+                  </RequireAuth>
                 }
-              />
-              <Route
-                path="dashboard"
-                element={
-                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
-                    <DashboardPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="profile"
-                element={
-                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
-                    <ProfilePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
-                    <SettingsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="change-password"
-                element={
-                  <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
-                    <ChangePasswordPage />
-                  </Suspense>
-                }
-              />
-            </Route>
-            <Route path="*" element={<Navigate to="/app" replace />} />
+              >
+                <Route index element={<Navigate to="chat" replace />} />
+                <Route
+                  path="chat"
+                  element={
+                    <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                      <ChatPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="dashboard"
+                  element={
+                    <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                      <DashboardPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="profile"
+                  element={
+                    <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                      <ProfilePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                      <SettingsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="change-password"
+                  element={
+                    <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                      <ChangePasswordPage />
+                    </Suspense>
+                  }
+                />
+              </Route>
+              <Route path="*" element={<Navigate to="/app" replace />} />
             </Routes>
             <ToastContainer />
           </ToastProvider>

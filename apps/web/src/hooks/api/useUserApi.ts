@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { apiClient, extractErrorMessage, resetAccount, ResetAccountRequest, ResetAccountResponse, changePassword, ChangePasswordRequest, ChangePasswordResponse } from '../../api/client';
+import {
+  apiClient,
+  extractErrorMessage,
+  resetAccount,
+  ResetAccountRequest,
+  ResetAccountResponse,
+  changePassword,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+} from '../../api/client';
 import { UserDto, MessageResponse } from '../../api/types';
 
 interface UpdateUserInput {
@@ -109,7 +118,7 @@ export function useResetAccount() {
       queryClient.invalidateQueries({ queryKey: ['recurring'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
-      
+
       // Navigate to dashboard after successful reset
       navigate('/app/dashboard', { replace: true });
     },

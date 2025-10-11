@@ -19,12 +19,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newToast: Toast = { ...toast, id };
-    
-    setToasts(prev => [...prev, newToast]);
+
+    setToasts((prev) => [...prev, newToast]);
   };
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
   const success = (title: string, message?: string, duration?: number) => {

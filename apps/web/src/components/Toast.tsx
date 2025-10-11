@@ -86,9 +86,7 @@ export function ToastComponent({ toast, onRemove }: ToastProps) {
           <Icon size={20} className={`flex-shrink-0 mt-0.5 ${config.iconColor}`} />
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-semibold text-slate-100">{toast.title}</h4>
-            {toast.message && (
-              <p className="text-sm text-slate-300 mt-1">{toast.message}</p>
-            )}
+            {toast.message && <p className="text-sm text-slate-300 mt-1">{toast.message}</p>}
           </div>
           <button
             onClick={handleRemove}

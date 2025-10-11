@@ -18,7 +18,8 @@ export function ForgotPasswordPage() {
       setIsSuccess(true);
       toast.success('Email đã được gửi', 'Vui lòng kiểm tra hộp thư để đặt lại mật khẩu');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Không thể gửi email đặt lại mật khẩu';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Không thể gửi email đặt lại mật khẩu';
       setError(errorMessage);
       toast.error('Gửi email thất bại', errorMessage);
     }

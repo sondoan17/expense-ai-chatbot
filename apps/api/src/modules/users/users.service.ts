@@ -53,7 +53,11 @@ export class UsersService {
     return rest;
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     // Lấy user entity để có passwordHash
     const user = await this.findById(userId);
     if (!user) {

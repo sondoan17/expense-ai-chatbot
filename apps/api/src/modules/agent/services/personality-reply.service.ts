@@ -13,7 +13,7 @@ export class PersonalityReplyService {
     originalReply: string,
     personality: PersonalityProfile,
     language: AgentLanguage,
-    context?: string
+    context?: string,
   ): Promise<string> {
     const prompt = this.buildRewritePrompt(originalReply, personality, language, context);
 
@@ -21,13 +21,13 @@ export class PersonalityReplyService {
       const rewritten = await this.hyperbolicService.complete(
         [
           { role: 'system', content: prompt },
-          { role: 'user', content: originalReply }
+          { role: 'user', content: originalReply },
         ],
         {
           max_tokens: 200,
           temperature: 0.7,
-          response_format: { type: 'text' }
-        }
+          response_format: { type: 'text' },
+        },
       );
 
       return rewritten.trim();
@@ -42,11 +42,10 @@ export class PersonalityReplyService {
     originalReply: string,
     personality: PersonalityProfile,
     language: AgentLanguage,
-    context?: string
+    context?: string,
   ): string {
-    const languageInstruction = language === 'vi' 
-      ? 'Respond in Vietnamese.' 
-      : 'Respond in English.';
+    const languageInstruction =
+      language === 'vi' ? 'Respond in Vietnamese.' : 'Respond in English.';
 
     return `You are rewriting a chatbot reply to match a specific personality style.
 

@@ -155,9 +155,9 @@ export interface AgentChatResponse {
   error?: string;
 }
 
-export type AiPersonality = 
+export type AiPersonality =
   | 'FRIENDLY'
-  | 'PROFESSIONAL' 
+  | 'PROFESSIONAL'
   | 'CASUAL'
   | 'HUMOROUS'
   | 'INSULTING'

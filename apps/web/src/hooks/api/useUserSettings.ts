@@ -12,7 +12,7 @@ export function useUserSettings() {
 
 export function useUpdatePersonality() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (personality: AiPersonality) => updatePersonality(personality),
     onSuccess: () => {

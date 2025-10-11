@@ -699,16 +699,16 @@ export class BudgetHandlerService {
     return warnings.sort((a, b) => {
       const aIsOverBudget = a.includes('vượt') || a.includes('exceeded');
       const bIsOverBudget = b.includes('vượt') || b.includes('exceeded');
-      
+
       if (aIsOverBudget && !bIsOverBudget) return -1;
       if (!aIsOverBudget && bIsOverBudget) return 1;
-      
+
       const aIsAlmost = a.includes('Gần hết') || a.includes('Almost');
       const bIsAlmost = b.includes('Gần hết') || b.includes('Almost');
-      
+
       if (aIsAlmost && !bIsAlmost) return -1;
       if (!aIsAlmost && bIsAlmost) return 1;
-      
+
       return 0;
     });
   }

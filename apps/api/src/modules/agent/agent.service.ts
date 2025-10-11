@@ -12,7 +12,12 @@ import { AgentActionDto } from './dto/agent-action.dto';
 import { AgentChatResult } from './types/agent-response.type';
 import { ChatMessageStatus, ChatRole, Currency, AiPersonality } from '@prisma/client';
 
-import { AgentLanguage, DEFAULT_LANGUAGE, DEFAULT_TIMEZONE, buildSystemPromptWithPersonality } from './agent.constants';
+import {
+  AgentLanguage,
+  DEFAULT_LANGUAGE,
+  DEFAULT_TIMEZONE,
+  buildSystemPromptWithPersonality,
+} from './agent.constants';
 import {
   buildClassificationErrorReply,
   buildEmptyMessageReply,
@@ -91,7 +96,7 @@ export class AgentService {
     const systemPrompt = buildSystemPromptWithPersonality(
       personalityProfile,
       now.toISOString(),
-      timezone
+      timezone,
     );
 
     const chatMessages: HyperbolicMessage[] = [
@@ -377,7 +382,7 @@ export class AgentService {
         result.reply,
         personalityProfile,
         language,
-        context
+        context,
       );
     } catch (error) {
       this.logger.error('Failed to rewrite reply with personality', error);
@@ -516,25 +521,25 @@ export class AgentService {
   private async handleChangePersonality(
     user: PublicUser,
     payload: AgentPayload,
-    language: AgentLanguage
+    language: AgentLanguage,
   ): Promise<AgentChatResult> {
     // Extract personality from payload (add new field to AgentPayload schema)
     const newPersonality = (payload as AgentPayload & { personality?: string }).personality; // e.g., 'FRIENDLY'
-    
+
     if (!newPersonality || !Object.values(AiPersonality).includes(newPersonality)) {
       return {
         reply: this.buildInvalidPersonalityReply(language),
         intent: 'change_personality',
-        parsed: payload
+        parsed: payload,
       };
     }
-    
+
     await this.userSettingsService.updatePersonality(user.id, newPersonality);
-    
+
     return {
       reply: this.buildPersonalityChangedReply(language, newPersonality),
       intent: 'change_personality',
-      parsed: payload
+      parsed: payload,
     };
   }
 
@@ -546,7 +551,7 @@ export class AgentService {
         CASUAL: 'Thoải mái',
         HUMOROUS: 'Hài hước',
         INSULTING: 'Xúc phạm',
-        ENTHUSIASTIC: 'Nhiệt tình'
+        ENTHUSIASTIC: 'Nhiệt tình',
       },
       en: {
         FRIENDLY: 'Friendly',
@@ -554,12 +559,15 @@ export class AgentService {
         CASUAL: 'Casual',
         HUMOROUS: 'Humorous',
         INSULTING: 'Insulting',
-        ENTHUSIASTIC: 'Enthusiastic'
-      }
+        ENTHUSIASTIC: 'Enthusiastic',
+      },
     };
-    
-    const label = personalityLabels[language][personality as keyof typeof personalityLabels[typeof language]] || personality;
-    
+
+    const label =
+      personalityLabels[language][
+        personality as keyof (typeof personalityLabels)[typeof language]
+      ] || personality;
+
     return language === 'vi'
       ? `Đã chuyển tính cách sang "${label}". Từ giờ mình sẽ trò chuyện theo phong cách này nhé!`
       : `Personality changed to "${label}". I'll interact with this style from now on!`;

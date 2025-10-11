@@ -32,7 +32,7 @@ export const PERSONALITY_PROFILES: Record<AiPersonality, PersonalityProfile> = {
   CASUAL: {
     name: 'CASUAL',
     tone: 'casual and relaxed, like talking to a friend',
-    interactionPolicy: 'easy-going, doesn\'t push too hard for details',
+    interactionPolicy: "easy-going, doesn't push too hard for details",
     maxProactivity: 'low',
     askStyle: 'casual questions and friendly reminders',
     lengthPrefs: 'conversational',

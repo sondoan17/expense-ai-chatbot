@@ -239,7 +239,9 @@ export const AgentPayloadSchema = z.object({
   recurring_start_date: z.string().datetime().optional(),
   recurring_end_date: z.string().datetime().optional(),
   recurring_txn_type: z.enum(TXN_TYPE_VALUES).optional(),
-  personality: z.enum(['FRIENDLY', 'PROFESSIONAL', 'CASUAL', 'HUMOROUS', 'INSULTING', 'ENTHUSIASTIC']).optional(),
+  personality: z
+    .enum(['FRIENDLY', 'PROFESSIONAL', 'CASUAL', 'HUMOROUS', 'INSULTING', 'ENTHUSIASTIC'])
+    .optional(),
 });
 
 export type Intent = z.infer<typeof IntentSchema>;

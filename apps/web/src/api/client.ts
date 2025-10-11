@@ -74,6 +74,8 @@ export async function getUserSettings(): Promise<UserSettings> {
 }
 
 export async function updatePersonality(personality: string): Promise<UserSettings> {
-  const response = await apiClient.patch<UserSettings>('/users/settings/personality', { personality });
+  const response = await apiClient.patch<UserSettings>('/users/settings/personality', {
+    personality,
+  });
   return response.data;
 }
