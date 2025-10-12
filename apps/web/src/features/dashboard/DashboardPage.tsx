@@ -1,6 +1,17 @@
 import { useCallback, useMemo, useState } from 'react';
-// charts rendered in child components
-import { registerCharts } from './components/charts';
+import {
+  Box,
+  Container,
+  Stack,
+  Tabs,
+  Tab,
+  Paper,
+  Typography,
+  Avatar,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
+import { Refresh, TrendingUp, TrendingDown, Wallet, CalendarToday } from '@mui/icons-material';
 import { useSummary, useOverview, useBudgetStatus } from '../../hooks/api/useDashboardApi';
 // stat card used in child component
 import { OverviewTab } from './components/OverviewTab';
@@ -9,8 +20,6 @@ import { BudgetsTab } from './components/BudgetsTab';
 import { RecentTab } from './components/RecentTab';
 import { formatCurrency, formatDate } from '../../utils/format';
 // currency type used in child components
-
-registerCharts();
 
 export function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
@@ -88,93 +97,168 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4"></div>
+    <Box sx={{ height: '100%', overflow: 'hidden' }}>
+      <Container maxWidth={false} sx={{ height: '100%', py: 2 }}>
+        <Stack spacing={3} sx={{ height: '100%' }}>
+          {/* Header */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border: '1px solid rgba(148, 163, 184, 0.16)',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
+              backdropFilter: 'blur(20px)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              overflow: 'hidden',
+            }}
+          >
+            <Box sx={{ p: 3, pb: 2 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <Box sx={{ flex: 1 }}>
+                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: 'primary.main',
+                        width: 48,
+                        height: 48,
+                        background: 'linear-gradient(135deg, #38bdf8, #22d3ee)',
+                      }}
+                    >
+                      <Wallet />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        Bảng điều khiển
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        Theo dõi tổng quan thu chi và ngân sách được cập nhật liên tục
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
 
-      <div className="flex flex-col gap-4 h-full overflow-y-auto">
-        <header className="rounded-2xl border border-slate-700/40 bg-slate-900/60 backdrop-blur-xl h-fit sticky top-0 z-10">
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <h2 className="m-0 text-xl font-semibold tracking-tight">Bảng điều khiển</h2>
-              <p className="m-0 mt-1 text-sm text-slate-400">
-                Theo dõi tổng quan thu chi và ngân sách được cập nhật liên tục.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-sky-400 to-cyan-400 px-4 py-2 font-semibold text-slate-900 shadow-[0_12px_24px_-12px_rgba(56,189,248,0.45)] transition hover:-translate-y-0.5 disabled:opacity-60"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Đang làm mới...' : 'Làm mới dữ liệu'}
-            </button>
-          </div>
-          <div className="flex gap-2 border-t border-slate-700/40 px-2 py-2">
-            {[
-              { id: 'overview', label: 'Tổng quan' },
-              { id: 'charts', label: 'Biểu đồ' },
-              { id: 'budgets', label: 'Ngân sách' },
-              { id: 'recent', label: 'Lịch sử' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`${
-                  activeTab === (tab.id as typeof activeTab)
-                    ? 'bg-sky-400/20 text-sky-200'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
-                } rounded-xl px-3 py-1.5 text-sm font-semibold transition`}
-                aria-pressed={activeTab === (tab.id as typeof activeTab)}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Tooltip title="Cập nhật dữ liệu">
+                    <IconButton
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      sx={{
+                        bgcolor: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.2)',
+                        '&:hover': {
+                          bgcolor: 'rgba(56, 189, 248, 0.2)',
+                          transform: 'scale(1.05)',
+                        },
+                        '&:disabled': {
+                          opacity: 0.6,
+                        },
+                      }}
+                    >
+                      <Refresh sx={{ color: 'primary.main' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Stack>
+            </Box>
+
+            <Box sx={{ px: 3, py: 2, borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, newValue) => setActiveTab(newValue)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  '& .MuiTabs-indicator': {
+                    height: 3,
+                    borderRadius: '2px 2px 0 0',
+                    background: 'linear-gradient(90deg, #38bdf8, #22d3ee)',
+                  },
+                }}
               >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </header>
-        <div className="p-4">
-          {activeTab === 'overview' && (
-            <OverviewTab
-              totals={summary ? summary.totals : null}
-              loading={summaryLoading}
-              formatCurrency={(n) => formatCurrency(n)}
-              transactionCount={summary?.transactionCount}
-              activeDays={summary?.activeDays}
-              avgExpensePerTransaction={summary?.avgExpensePerTransaction}
-              topCategory={summary?.topCategory}
-              maxExpenseDay={summary?.maxExpenseDay}
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={setSelectedPeriod}
-            />
-          )}
+                {[
+                  { id: 'overview', label: 'Tổng quan', icon: <TrendingUp /> },
+                  { id: 'charts', label: 'Biểu đồ', icon: <TrendingDown /> },
+                  { id: 'budgets', label: 'Ngân sách', icon: <Wallet /> },
+                  { id: 'recent', label: 'Lịch sử', icon: <CalendarToday /> },
+                ].map((tab) => (
+                  <Tab
+                    key={tab.id}
+                    label={tab.label}
+                    value={tab.id}
+                    icon={tab.icon}
+                    iconPosition="start"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      minHeight: 'auto',
+                      px: 3,
+                      py: 1.5,
+                      mr: 1,
+                      color: 'text.secondary',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                        color: 'text.primary',
+                      },
+                      '&.Mui-selected': {
+                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                        color: 'primary.main',
+                        fontWeight: 700,
+                      },
+                    }}
+                  />
+                ))}
+              </Tabs>
+            </Box>
+          </Paper>
 
-          {activeTab === 'charts' && (
-            <ChartsTab
-              doughnutData={doughnutData}
-              lineData={lineData}
-              formatCurrency={formatCurrency}
-            />
-          )}
+          {/* Content */}
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            {activeTab === 'overview' && (
+              <OverviewTab
+                totals={summary ? summary.totals : null}
+                loading={summaryLoading}
+                formatCurrency={(n) => formatCurrency(n)}
+                transactionCount={summary?.transactionCount}
+                activeDays={summary?.activeDays}
+                avgExpensePerTransaction={summary?.avgExpensePerTransaction}
+                topCategory={summary?.topCategory}
+                maxExpenseDay={summary?.maxExpenseDay}
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={setSelectedPeriod}
+              />
+            )}
 
-          {activeTab === 'budgets' && (
-            <BudgetsTab
-              budgets={budgets}
-              loading={budgetsLoading}
-              formatCurrency={formatCurrency}
-            />
-          )}
+            {activeTab === 'charts' && (
+              <ChartsTab
+                doughnutData={doughnutData}
+                lineData={lineData}
+                formatCurrency={formatCurrency}
+              />
+            )}
 
-          {activeTab === 'recent' && (
-            <RecentTab
-              loading={overviewLoading || !overview}
-              items={overview?.recent}
-              formatDate={formatDate}
-              formatCurrency={formatCurrency}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+            {activeTab === 'budgets' && (
+              <BudgetsTab
+                budgets={budgets}
+                loading={budgetsLoading}
+                formatCurrency={formatCurrency}
+              />
+            )}
+
+            {activeTab === 'recent' && (
+              <RecentTab
+                loading={overviewLoading || !overview}
+                items={overview?.recent}
+                formatDate={formatDate}
+                formatCurrency={formatCurrency}
+              />
+            )}
+          </Box>
+        </Stack>
+      </Container>
+    </Box>
   );
 }

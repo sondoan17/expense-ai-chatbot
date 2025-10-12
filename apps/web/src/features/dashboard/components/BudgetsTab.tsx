@@ -1,4 +1,5 @@
 import { Currency } from '@expense-ai/shared';
+import { Box, Card, CardContent, Typography, LinearProgress, Alert, Stack } from '@mui/material';
 
 interface BudgetItem {
   budget: {
@@ -23,55 +24,93 @@ interface BudgetsTabProps {
 }
 
 export function BudgetsTab({ budgets, loading, formatCurrency }: BudgetsTabProps) {
-  if (loading) return <p>Đang tải ngân sách...</p>;
+  if (loading) return <Typography>Đang tải ngân sách...</Typography>;
   if (!budgets || budgets.length === 0)
-    return <p>Chưa có ngân sách. Hãy tạo ngân sách mới trong trang Lập kế hoạch.</p>;
+    return (
+      <Alert severity="info">
+        Chưa có ngân sách. Hãy tạo ngân sách mới trong trang Lập kế hoạch.
+      </Alert>
+    );
 
   return (
-    <section className="grid gap-4 rounded-2xl border border-slate-700/40 bg-slate-900/60 p-5 backdrop-blur-xl">
-      <div>
-        <h2 className="m-0 text-lg font-semibold">Ngân sách</h2>
-      </div>
-      <div className="grid gap-3">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        Ngân sách
+      </Typography>
+      <Stack spacing={2}>
         {budgets.map((budget) => {
           const pct = Math.min(100, Math.round(budget.percentage));
           const overBudget = budget.overBudget;
           const remainingLabel = formatCurrency(budget.remaining, budget.budget.currency);
           const overspentLabel = formatCurrency(budget.overspent, budget.budget.currency);
+
           return (
-            <div
+            <Card
               key={budget.budget.id}
-              className="grid gap-2 rounded-xl border border-slate-700/40 bg-slate-900/70 p-4"
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                border: '1px solid rgba(148, 163, 184, 0.16)',
+                backgroundColor: 'rgba(15, 23, 42, 0.7)',
+              }}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong>{budget.budget.category?.name ?? 'Tất cả danh mục'}</strong>
-                  <div className="text-sm text-slate-400">
-                    Tháng {budget.budget.month}/{budget.budget.year}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span>{formatCurrency(budget.spent, budget.budget.currency)}</span>
-                  <div className="text-sm text-slate-400">
-                    / {formatCurrency(budget.budget.limitAmount, budget.budget.currency)}
-                  </div>
-                </div>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-500/30">
-                <div
-                  className={`${overBudget ? 'bg-gradient-to-r from-orange-500 to-rose-500' : 'bg-gradient-to-r from-sky-400 to-cyan-500'} h-full transition-[width] duration-500`}
-                  style={{ width: `${pct}%` }}
+              <CardContent sx={{ p: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {budget.budget.category?.name ?? 'Tất cả danh mục'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tháng {budget.budget.month}/{budget.budget.year}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {formatCurrency(budget.spent, budget.budget.currency)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      / {formatCurrency(budget.budget.limitAmount, budget.budget.currency)}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <LinearProgress
+                  variant="determinate"
+                  value={pct}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: 'rgba(148, 163, 184, 0.18)',
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                      background: overBudget
+                        ? 'linear-gradient(135deg, #f97316, #ef4444)'
+                        : 'linear-gradient(135deg, #38bdf8, #0ea5e9)',
+                    },
+                  }}
                 />
-              </div>
-              {overBudget ? (
-                <div className="text-sm font-semibold text-rose-300">Đã vượt {overspentLabel}</div>
-              ) : (
-                <div className="text-sm text-slate-400">Còn lại {remainingLabel}</div>
-              )}
-            </div>
+
+                {overBudget ? (
+                  <Alert severity="error" sx={{ mt: 1, py: 0 }}>
+                    Đã vượt {overspentLabel}
+                  </Alert>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Còn lại {remainingLabel}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
-      </div>
-    </section>
+      </Stack>
+    </Box>
   );
 }

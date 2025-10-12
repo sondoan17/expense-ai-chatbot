@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Box, Paper, Typography, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { StatCard } from '../../../components/StatCard';
 
 interface OverviewTabProps {
@@ -114,27 +115,37 @@ export function OverviewTab({
   const dynamicLabels = getDynamicLabels(selectedPeriod);
 
   return (
-    <div className="space-y-6">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Period Selector */}
-      <section>
-        <div className="flex items-center justify-end mb-4">
-          <select
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Khoảng thời gian</InputLabel>
+          <Select
             value={selectedPeriod}
             onChange={(e) => onPeriodChange(e.target.value)}
-            className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-slate-200 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+            label="Khoảng thời gian"
           >
             {periodOptions.map((option) => (
-              <option key={option.value} value={option.value}>
+              <MenuItem key={option.value} value={option.value}>
                 {option.label}
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </div>
-      </section>
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Tổng quan */}
-      <section>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <Paper elevation={0} sx={{ p: 3, backgroundColor: 'transparent' }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          Tổng quan
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 2,
+          }}
+        >
           <StatCard
             label="Chi"
             value={loading || !totals ? '...' : formatCurrency(totals.expense)}
@@ -150,13 +161,21 @@ export function OverviewTab({
             value={loading || !totals ? '...' : formatCurrency(totals.net)}
             accent="primary"
           />
-        </div>
-      </section>
+        </Box>
+      </Paper>
 
       {/* Phân tích */}
-      <section>
-        <h3 className="mb-4 text-lg font-semibold text-slate-200">Phân tích</h3>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <Paper elevation={0} sx={{ p: 3, backgroundColor: 'transparent' }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          Phân tích
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 2,
+          }}
+        >
           <StatCard
             label="Tỷ lệ tiết kiệm"
             value={
@@ -192,13 +211,21 @@ export function OverviewTab({
             }
             accent="warning"
           />
-        </div>
-      </section>
+        </Box>
+      </Paper>
 
       {/* Chi tiết (ẩn trên màn hình nhỏ) */}
-      <section className="hidden md:block">
-        <h3 className="mb-4 text-lg font-semibold text-slate-200">Chi tiết</h3>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+      <Paper elevation={0} sx={{ p: 3, backgroundColor: 'transparent' }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          Chi tiết
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 2,
+          }}
+        >
           <StatCard
             label={dynamicLabels.transactionCount}
             value={loading ? '...' : transactionCount != null ? String(transactionCount) : '—'}
@@ -226,8 +253,8 @@ export function OverviewTab({
               accent="warning"
             />
           )}
-        </div>
-      </section>
-    </div>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

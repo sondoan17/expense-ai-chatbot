@@ -242,6 +242,7 @@ export const AgentPayloadSchema = z.object({
   personality: z
     .enum(['FRIENDLY', 'PROFESSIONAL', 'CASUAL', 'HUMOROUS', 'INSULTING', 'ENTHUSIASTIC'])
     .optional(),
+  reply: z.string().optional(), // 🆕 LLM-generated reply
 });
 
 export type Intent = z.infer<typeof IntentSchema>;

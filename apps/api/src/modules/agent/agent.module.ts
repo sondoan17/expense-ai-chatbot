@@ -20,6 +20,7 @@ import {
 import { InsightsService } from './services/insights.service';
 import { AIResponseService } from './services/ai-response.service';
 import { PersonalityReplyService } from './services/personality-reply.service';
+import { DataReplyService } from './services/data-reply.service';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PersonalityReplyService } from './services/personality-reply.service';
     InsightsService,
     AIResponseService,
     PersonalityReplyService,
+    DataReplyService,
   ],
 })
 export class AgentModule {}

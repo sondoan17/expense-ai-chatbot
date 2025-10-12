@@ -1,4 +1,4 @@
-import './stats.css';
+import { Card, CardContent, Typography } from '@mui/material';
 
 interface StatCardProps {
   label: string;
@@ -8,19 +8,58 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, trend, accent = 'primary' }: StatCardProps) {
+  const getGradientBackground = () => {
+    switch (accent) {
+      case 'warning':
+        return 'linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(245, 158, 11, 0.1))';
+      case 'success':
+        return 'linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(34, 197, 94, 0.1))';
+      default:
+        return 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.1))';
+    }
+  };
+
   return (
-    <div
-      className={`rounded-2xl border border-slate-700/40 p-5 backdrop-blur-xl ${
-        accent === 'warning'
-          ? 'bg-gradient-to-br from-yellow-400/20 to-amber-500/10'
-          : accent === 'success'
-            ? 'bg-gradient-to-br from-emerald-400/20 to-green-500/10'
-            : 'bg-gradient-to-br from-sky-400/20 to-indigo-500/10'
-      }`}
+    <Card
+      sx={{
+        backgroundImage: getGradientBackground(),
+        borderRadius: 1.5,
+        border: '1px solid rgba(148, 163, 184, 0.16)',
+        backdropFilter: 'blur(12px)',
+        height: '100%',
+      }}
     >
-      <p className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="m-0 mt-2 text-2xl font-bold">{value}</p>
-      {trend ? <span className="text-sm text-slate-400">{trend}</span> : null}
-    </div>
+      <CardContent sx={{ p: 3 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: 'text.secondary',
+            display: 'block',
+            mb: 1,
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            fontSize: '1.5rem',
+            lineHeight: 1.2,
+            mb: trend ? 1 : 0,
+          }}
+        >
+          {value}
+        </Typography>
+        {trend && (
+          <Typography variant="body2" color="text.secondary">
+            {trend}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -25,9 +25,22 @@ import {
   getBudgetTargetLabel,
   getCategoryLabel,
 } from '../utils/agent-response.utils';
+import { getReplyWithFallback, logReplySource } from '../utils/reply-fallback.util';
 import { CategoryResolverService } from './category-resolver.service';
 import { TransactionResult } from '../types/internal.types';
 import { AIResponseService } from '../services/ai-response.service';
+import { PersonalityReplyService } from '../services/personality-reply.service';
+import { DataReplyService, DataContext } from '../services/data-reply.service';
+import { PersonalityProfile } from '../types/personality.types';
+import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+
+// Helper function to wrap action payloads with intent
+function wrapActionPayload(
+  payload: BudgetActionPayload | RecurringBudgetActionPayload,
+  intent: string,
+) {
+  return { intent, ...payload } as AgentPayload;
+}
 
 const RECURRING_UPDATE_MARKERS = [
   'cap nhat',
@@ -67,6 +80,9 @@ export class BudgetHandlerService {
     private readonly configService: ConfigService,
     private readonly categoryResolver: CategoryResolverService,
     private readonly aiResponseService: AIResponseService,
+    private readonly personalityReplyService: PersonalityReplyService,
+    private readonly dataReplyService: DataReplyService,
+    private readonly hyperbolicService: HyperbolicService,
   ) {}
 
   async handleSetBudget(
@@ -76,8 +92,12 @@ export class BudgetHandlerService {
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
     if (!payload.amount || payload.amount <= 0) {
+      const fallbackReply = buildAskBudgetAmountReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildAskBudgetAmountReply(language),
+        reply,
         intent: 'clarify',
         parsed: payload,
       };
@@ -155,12 +175,17 @@ export class BudgetHandlerService {
     const monthLabel = formatMonthYear(month, year, language);
     const categoryLabel = getCategoryLabel(language, category?.name ?? categoryName ?? null);
 
+    const fallbackReply = buildBudgetSetReply(language, {
+      amountLabel,
+      categoryLabel,
+      monthLabel,
+    });
+
+    const reply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
+
     return {
-      reply: buildBudgetSetReply(language, {
-        amountLabel,
-        categoryLabel,
-        monthLabel,
-      }),
+      reply,
       intent: payload.intent,
       parsed: payload,
       data: { budget },
@@ -292,6 +317,7 @@ export class BudgetHandlerService {
     payload: AgentPayload,
     timezone: string,
     language: AgentLanguage,
+    personalityProfile: PersonalityProfile,
   ): Promise<AgentChatResult> {
     const now = DateTime.now().setZone(timezone);
     const month = payload.budget_month ?? now.month;
@@ -317,8 +343,12 @@ export class BudgetHandlerService {
     if (!budget) {
       const monthLabel = formatMonthYear(month, year, language);
       const target = getBudgetTargetLabel(language, category?.name ?? categoryName ?? null);
+      const fallbackReply = buildBudgetNotFoundReply(language, { target, monthLabel });
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildBudgetNotFoundReply(language, { target, monthLabel }),
+        reply,
         intent: 'clarify',
         parsed: payload,
       };
@@ -326,15 +356,28 @@ export class BudgetHandlerService {
 
     const status = await this.budgetsService.status(user.id, budget.id);
 
-    // Generate AI response for budget status
+    // Generate AI response for budget status - data injection approach
     try {
-      const reply = await this.aiResponseService.generateQueryResponse({
-        intent: payload.intent,
+      // Format data context for LLM
+      const dataContext: DataContext = {
+        budgetStatus: {
+          categoryName: status.budget.category?.name || 'Tổng quát',
+          spent: status.spent,
+          budget: status.budget.limitAmount,
+          remaining: status.remaining,
+          percentage: status.percentage,
+          isOverBudget: status.overBudget,
+        },
+      };
+
+      // Single LLM call with data injection + personality
+      const reply = await this.dataReplyService.generateReplyWithData(
+        payload,
+        dataContext,
+        personalityProfile,
         language,
-        data: status,
-        user,
-        userQuestion: payload.note || 'Tôi muốn xem tình trạng ngân sách',
-      });
+      );
+      this.logger.debug(`Using data injection approach for intent: ${payload.intent}`);
 
       return {
         reply,
@@ -363,16 +406,21 @@ export class BudgetHandlerService {
           : undefined;
       const endDateLabel = status.range?.end ? formatDate(status.range.end, timezone) : undefined;
 
+      const fallbackReply = buildBudgetStatusReply(language, {
+        amountLabel,
+        limitLabel,
+        percentLabel,
+        remainingLabel,
+        endDateLabel,
+        overBudget: status.overBudget,
+        overspentLabel,
+      });
+
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildBudgetStatusReply(language, {
-          amountLabel,
-          limitLabel,
-          percentLabel,
-          remainingLabel,
-          endDateLabel,
-          overBudget: status.overBudget,
-          overspentLabel,
-        }),
+        reply,
         intent: payload.intent,
         parsed: payload,
         data: { status },
@@ -388,8 +436,12 @@ export class BudgetHandlerService {
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
     if (!payload.amount || payload.amount <= 0) {
+      const fallbackReply = buildAskBudgetAmountReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildAskBudgetAmountReply(language),
+        reply,
         intent: 'clarify',
         parsed: payload,
       };
@@ -494,11 +546,16 @@ export class BudgetHandlerService {
         },
       ];
 
+      const fallbackReply =
+        language === 'vi'
+          ? `Đã có ngân sách định kỳ cho ${categoryLabel || 'danh mục này'} với số tiền ${existingAmountLabel}. Bạn muốn cập nhật hay thêm vào ngân sách hiện có?`
+          : `There's already a recurring budget for ${categoryLabel || 'this category'} with amount ${existingAmountLabel}. Would you like to update or add to the existing budget?`;
+
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply:
-          language === 'vi'
-            ? `Đã có ngân sách định kỳ cho ${categoryLabel || 'danh mục này'} với số tiền ${existingAmountLabel}. Bạn muốn cập nhật hay thêm vào ngân sách hiện có?`
-            : `There's already a recurring budget for ${categoryLabel || 'this category'} with amount ${existingAmountLabel}. Would you like to update or add to the existing budget?`,
+        reply,
         intent: 'clarify',
         parsed: payload,
         data: { existingRule },
@@ -548,7 +605,7 @@ export class BudgetHandlerService {
         ? buildRecurringBudgetRuleUpdatedReply
         : buildRecurringBudgetRuleCreatedReply;
 
-    const reply = replyBuilder(language, {
+    const fallbackReply = replyBuilder(language, {
       amountLabel,
       categoryLabel,
       scheduleLabel,
@@ -557,8 +614,11 @@ export class BudgetHandlerService {
       nextRunLabel,
     });
 
+    const finalReply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
+
     return {
-      reply,
+      reply: finalReply,
       intent: payload.intent,
       parsed: payload,
       data: { rule, action },
@@ -577,12 +637,16 @@ export class BudgetHandlerService {
     });
 
     if (!rule) {
-      const message =
+      const fallbackReply =
         language === 'vi'
           ? 'Mình không tìm thấy quy tắc ngân sách định kỳ này nữa, bạn thử tạo lại giúp mình nhé.'
           : "I couldn't find that recurring budget rule anymore. Please try creating it again.";
+      const mockPayload = wrapActionPayload(payload, 'set_recurring_budget');
+      const reply = getReplyWithFallback(mockPayload, fallbackReply, language);
+      logReplySource(mockPayload, this.logger);
+
       return {
-        reply: message,
+        reply,
         intent: 'error',
       };
     }
@@ -599,10 +663,14 @@ export class BudgetHandlerService {
     const amountLabel = formatCurrency(updated.amount.toNumber(), updated.currency, language);
     const categoryLabel = updated.category?.name ?? null;
 
-    const reply =
+    const fallbackReply =
       language === 'vi'
         ? `Mình đã cập nhật ngân sách định kỳ cho ${categoryLabel || 'danh mục này'} thành ${amountLabel}.`
         : `Updated the recurring budget for ${categoryLabel || 'this category'} to ${amountLabel}.`;
+
+    const mockPayload = wrapActionPayload(payload, 'set_recurring_budget');
+    const reply = getReplyWithFallback(mockPayload, fallbackReply, language);
+    logReplySource(mockPayload, this.logger);
 
     return {
       reply,
@@ -622,12 +690,16 @@ export class BudgetHandlerService {
     });
 
     if (!rule) {
-      const message =
+      const fallbackReply =
         language === 'vi'
           ? 'Mình không tìm thấy quy tắc ngân sách định kỳ này nữa, bạn thử tạo lại giúp mình nhé.'
           : "I couldn't find that recurring budget rule anymore. Please try creating it again.";
+      const mockPayload = wrapActionPayload(payload, 'set_recurring_budget');
+      const reply = getReplyWithFallback(mockPayload, fallbackReply, language);
+      logReplySource(mockPayload, this.logger);
+
       return {
-        reply: message,
+        reply,
         intent: 'error',
       };
     }
@@ -645,10 +717,14 @@ export class BudgetHandlerService {
     const newAmountLabel = formatCurrency(updated.amount.toNumber(), updated.currency, language);
     const categoryLabel = updated.category?.name ?? null;
 
-    const reply =
+    const fallbackReply =
       language === 'vi'
         ? `Đã thêm ${incrementLabel} vào ngân sách định kỳ cho ${categoryLabel || 'danh mục này'}. Ngân sách mới là ${newAmountLabel}.`
         : `Added ${incrementLabel} to the recurring budget for ${categoryLabel || 'this category'}. The new budget is ${newAmountLabel}.`;
+
+    const mockPayload = wrapActionPayload(payload, 'set_recurring_budget');
+    const reply = getReplyWithFallback(mockPayload, fallbackReply, language);
+    logReplySource(mockPayload, this.logger);
 
     return {
       reply,

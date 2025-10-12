@@ -19,10 +19,15 @@ import {
   formatDate,
   getOtherCategoryLabel,
 } from '../utils/agent-response.utils';
+import { getReplyWithFallback, logReplySource } from '../utils/reply-fallback.util';
 import { CategoryResolverService } from './category-resolver.service';
 import { InsightsService } from '../services/insights.service';
 import { AIResponseService } from '../services/ai-response.service';
+import { PersonalityReplyService } from '../services/personality-reply.service';
+import { DataReplyService, DataContext } from '../services/data-reply.service';
 import { InsightResult } from '../types/internal.types';
+import { PersonalityProfile } from '../types/personality.types';
+import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
 
 @Injectable()
 export class QueryHandlerService {
@@ -33,6 +38,9 @@ export class QueryHandlerService {
     private readonly categoryResolver: CategoryResolverService,
     private readonly insightsService: InsightsService,
     private readonly aiResponseService: AIResponseService,
+    private readonly personalityReplyService: PersonalityReplyService,
+    private readonly dataReplyService: DataReplyService,
+    private readonly hyperbolicService: HyperbolicService,
   ) {}
 
   async handleSummary(
@@ -40,6 +48,7 @@ export class QueryHandlerService {
     payload: AgentPayload,
     timezone: string,
     language: AgentLanguage,
+    personalityProfile: PersonalityProfile,
   ): Promise<AgentChatResult> {
     const categoryName = payload.category
       ? this.categoryResolver.resolveCategory(payload.category)
@@ -76,16 +85,31 @@ export class QueryHandlerService {
       this.logger.error('Error generating insights', error);
     }
 
-    // Generate AI response instead of template
+    // Generate AI response with data injection approach
     try {
-      const reply = await this.aiResponseService.generateQueryResponse({
-        intent: payload.intent,
+      // Format data context for LLM
+      const dataContext: DataContext = {
+        summary: {
+          totals: summary.totals,
+          range: summary.range
+            ? {
+                start: summary.range.start || '',
+                end: summary.range.end || '',
+              }
+            : undefined,
+          byCategory: summary.byCategory,
+        },
+        insights: insights,
+      };
+
+      // Single LLM call with data injection + personality
+      const reply = await this.dataReplyService.generateReplyWithData(
+        payload,
+        dataContext,
+        personalityProfile,
         language,
-        data: summary,
-        insights,
-        user,
-        userQuestion: payload.note || 'Tôi muốn xem tổng quan chi tiêu',
-      });
+      );
+      this.logger.debug(`Using data injection approach for intent: ${payload.intent}`);
 
       return {
         reply,
@@ -105,34 +129,31 @@ export class QueryHandlerService {
         payload.period,
       );
 
+      let fallbackReply: string;
       if (payload.intent === 'query_by_category' && category) {
         const byCategory = summary.byCategory.find(
           (item: { categoryId: string }) => item.categoryId === category.id,
         );
         const amountLabel = formatCurrency(byCategory?.amount ?? 0, currency, language);
-        const reply = buildSummaryByCategoryReply(language, {
+        fallbackReply = buildSummaryByCategoryReply(language, {
           rangeLabel,
           amountLabel,
           categoryName: category.name,
         });
-
-        return {
-          reply,
-          intent: payload.intent,
-          parsed: payload,
-          data: { summary },
-        };
+      } else {
+        const expenseLabel = formatCurrency(summary.totals.expense, currency, language);
+        const incomeLabel = formatCurrency(summary.totals.income, currency, language);
+        const netLabel = formatCurrency(summary.totals.net, currency, language);
+        fallbackReply = buildSummaryTotalsReply(language, {
+          rangeLabel,
+          expenseLabel,
+          incomeLabel,
+          netLabel,
+        });
       }
 
-      const expenseLabel = formatCurrency(summary.totals.expense, currency, language);
-      const incomeLabel = formatCurrency(summary.totals.income, currency, language);
-      const netLabel = formatCurrency(summary.totals.net, currency, language);
-      const reply = buildSummaryTotalsReply(language, {
-        rangeLabel,
-        expenseLabel,
-        incomeLabel,
-        netLabel,
-      });
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
 
       return {
         reply,
@@ -148,6 +169,7 @@ export class QueryHandlerService {
     payload: AgentPayload,
     timezone: string,
     language: AgentLanguage,
+    personalityProfile: PersonalityProfile,
   ): Promise<AgentChatResult> {
     const listInput = Object.assign(new ListTransactionsQueryDto(), {
       page: 1,
@@ -174,23 +196,39 @@ export class QueryHandlerService {
     const result = await this.transactionsService.list(user.id, listInput);
 
     if (!result.data.length) {
+      const fallbackReply = buildNoTransactionsReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildNoTransactionsReply(language),
+        reply,
         intent: payload.intent,
         parsed: payload,
         data: { transactions: result },
       };
     }
 
-    // Generate AI response for recent transactions
+    // Generate AI response for recent transactions - data injection approach
     try {
-      const reply = await this.aiResponseService.generateQueryResponse({
-        intent: payload.intent,
+      // Format data context for LLM
+      const dataContext: DataContext = {
+        transactions: result.data.map((tx) => ({
+          occurredAt: tx.occurredAt,
+          amount: tx.amount,
+          category: tx.category ? { name: tx.category.name } : undefined,
+          type: tx.type.toString(),
+          note: tx.note || undefined,
+        })),
+      };
+
+      // Single LLM call with data injection + personality
+      const reply = await this.dataReplyService.generateReplyWithData(
+        payload,
+        dataContext,
+        personalityProfile,
         language,
-        data: result,
-        user,
-        userQuestion: payload.note || 'Tôi muốn xem các giao dịch gần đây',
-      });
+      );
+      this.logger.debug(`Using data injection approach for intent: ${payload.intent}`);
 
       return {
         reply,
@@ -212,7 +250,9 @@ export class QueryHandlerService {
         return buildRecentTransactionLine({ date, amount, category: label });
       });
 
-      const reply = `${buildRecentTransactionsHeader(language)}\n${lines.join('\n')}`;
+      const fallbackReply = `${buildRecentTransactionsHeader(language)}\n${lines.join('\n')}`;
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
 
       return {
         reply,

@@ -11,6 +11,7 @@ import {
   buildTransactionSavedReply,
   formatCurrency,
 } from '../utils/agent-response.utils';
+import { getReplyWithFallback, logReplySource } from '../utils/reply-fallback.util';
 import { CategoryResolverService } from './category-resolver.service';
 
 @Injectable()
@@ -63,14 +64,17 @@ export class TransactionHandlerService {
 
     const transaction = await this.transactionsService.create(user.id, dto);
 
+    // 🆕 Transaction intents có thể dùng LLM reply (personality-focused, không có rủi ro data)
     const amountLabel = formatCurrency(transaction.amount, transaction.currency, language);
     const categoryLabel = transaction.category?.name ?? categoryName ?? null;
-
-    const reply = buildTransactionSavedReply(language, {
+    const fallbackReply = buildTransactionSavedReply(language, {
       type,
       amount: amountLabel,
       category: categoryLabel,
     });
+
+    const reply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
 
     return {
       reply,

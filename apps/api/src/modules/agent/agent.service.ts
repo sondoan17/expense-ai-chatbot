@@ -17,6 +17,7 @@ import {
   DEFAULT_LANGUAGE,
   DEFAULT_TIMEZONE,
   buildSystemPromptWithPersonality,
+  buildClassificationOnlyPrompt,
 } from './agent.constants';
 import {
   buildClassificationErrorReply,
@@ -27,9 +28,11 @@ import {
   buildUndoNotSupportedReply,
   buildUnsupportedIntentReply,
 } from './utils/agent-response.utils';
+import { getReplyWithFallback, logReplySource } from './utils/reply-fallback.util';
 import { UserSettingsService } from '../users/users-settings.service';
 import { PersonalityReplyService } from './services/personality-reply.service';
-import { PERSONALITY_PROFILES } from './types/personality.types';
+import { DataReplyService } from './services/data-reply.service';
+import { PERSONALITY_PROFILES, PersonalityProfile } from './types/personality.types';
 import { logRawCompletion, parseAgentPayload } from './utils/payload.util';
 import {
   BudgetHandlerService,
@@ -72,6 +75,7 @@ export class AgentService {
     private readonly categoryResolver: CategoryResolverService,
     private readonly userSettingsService: UserSettingsService,
     private readonly personalityReplyService: PersonalityReplyService,
+    private readonly dataReplyService: DataReplyService,
   ) {}
 
   async chat(user: PublicUser, message: string): Promise<AgentChatResult> {
@@ -79,8 +83,12 @@ export class AgentService {
     const fallbackLanguage = this.detectLanguageFromMessage(trimmed);
 
     if (!trimmed) {
+      const fallbackReply = buildEmptyMessageReply(fallbackLanguage);
+      const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, fallbackLanguage);
+      logReplySource({} as AgentPayload, this.logger);
+
       return {
-        reply: buildEmptyMessageReply(fallbackLanguage),
+        reply,
         intent: 'clarify',
       };
     }
@@ -93,23 +101,20 @@ export class AgentService {
 
     const timezone = this.configService.get<string>('APP_TIMEZONE') ?? DEFAULT_TIMEZONE;
     const now = new Date();
-    const systemPrompt = buildSystemPromptWithPersonality(
-      personalityProfile,
-      now.toISOString(),
-      timezone,
-    );
 
-    const chatMessages: HyperbolicMessage[] = [
-      { role: 'system', content: systemPrompt },
+    // Step 1: Classification only (for all intents)
+    const classificationPrompt = buildClassificationOnlyPrompt(now.toISOString(), timezone);
+    const classificationMessages: HyperbolicMessage[] = [
+      { role: 'system', content: classificationPrompt },
       { role: 'user', content: trimmed },
     ];
 
     let payload: AgentPayload | undefined;
 
     try {
-      const raw = await this.hyperbolicService.complete(chatMessages, {
+      const raw = await this.hyperbolicService.complete(classificationMessages, {
         max_tokens: 350,
-        temperature: 0.1,
+        temperature: 0.1, // Low temperature for accurate classification
         top_p: 0.8,
         response_format: { type: 'json_object' },
       });
@@ -122,8 +127,12 @@ export class AgentService {
         'Agent classification failed',
         error instanceof Error ? error.stack : error,
       );
+      const fallbackReply = buildClassificationErrorReply(fallbackLanguage);
+      const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, fallbackLanguage);
+      logReplySource({} as AgentPayload, this.logger);
+
       return this.finalizeResponse(user.id, {
-        reply: buildClassificationErrorReply(fallbackLanguage),
+        reply,
         intent: 'error',
         error: error instanceof Error ? error.message : String(error),
       });
@@ -132,8 +141,12 @@ export class AgentService {
     const language = this.getLanguageFromPayload(payload);
 
     if (payload.confidence !== undefined && payload.confidence < 0.6) {
+      const fallbackReply = buildLowConfidenceReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return this.finalizeResponse(user.id, {
-        reply: buildLowConfidenceReply(language),
+        reply,
         intent: 'clarify',
         parsed: payload,
       });
@@ -142,69 +155,46 @@ export class AgentService {
     try {
       let result: AgentChatResult;
 
-      switch (payload.intent) {
-        case 'add_expense':
-        case 'add_income':
-          result = await this.handleAddTransaction(user, trimmed, payload, language);
-          break;
-        case 'set_budget':
-          result = await this.budgetHandler.handleSetBudget(user, payload, timezone, language);
-          break;
-        case 'get_budget_status':
-          result = await this.budgetHandler.handleBudgetStatus(user, payload, timezone, language);
-          break;
-        case 'query_total':
-        case 'query_by_category':
-          result = await this.queryHandler.handleSummary(user, payload, timezone, language);
-          break;
-        case 'list_recent':
-          result = await this.queryHandler.handleListRecent(user, payload, timezone, language);
-          break;
-        case 'undo_or_delete':
-          result = {
-            reply: buildUndoNotSupportedReply(language),
-            intent: 'clarify',
-            parsed: payload,
-          };
-          break;
-        case 'set_recurring':
-          result = await this.recurringHandler.handleSetRecurring(
-            user,
-            trimmed,
-            payload,
-            timezone,
-            language,
-          );
-          break;
-        case 'set_recurring_budget':
-          result = await this.budgetHandler.handleSetRecurringBudget(
-            user,
-            trimmed,
-            payload,
-            timezone,
-            language,
-          );
-          break;
-        case 'small_talk':
-          result = this.handleSmallTalk(user, payload, language);
-          break;
-        case 'change_personality':
-          result = await this.handleChangePersonality(user, payload, language);
-          break;
-        default:
-          result = {
-            reply: buildUnsupportedIntentReply(language),
-            intent: 'error',
-            parsed: payload,
-          };
-          break;
+      // Check if this is a query intent that needs data injection
+      const queryIntents = ['query_total', 'query_by_category', 'list_recent', 'get_budget_status'];
+      // Check if this is a complex intent that needs special handling (not 1-shot)
+      const complexIntents = ['set_budget', 'set_recurring_budget', 'set_recurring'];
+      const isQueryIntent = queryIntents.includes(payload.intent);
+      const isComplexIntent = complexIntents.includes(payload.intent);
+
+      if (isQueryIntent) {
+        // For query intents: use data injection approach
+        result = await this.handleQueryIntent(
+          user,
+          payload,
+          timezone,
+          language,
+          personalityProfile,
+        );
+      } else if (isComplexIntent) {
+        // For complex intents: use direct handler (no 1-shot, no data injection)
+        result = await this.handleComplexIntent(user, trimmed, payload, timezone, language);
+      } else {
+        // For simple transaction intents: use 1-shot approach with personality
+        result = await this.handleTransactionIntent(
+          user,
+          trimmed,
+          payload,
+          timezone,
+          language,
+          personalityProfile,
+        );
       }
 
       return this.finalizeResponse(user.id, result);
     } catch (error) {
       this.logger.error('Agent handler failed', error instanceof Error ? error.stack : error);
+      const fallbackReply = buildHandlerErrorReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return this.finalizeResponse(user.id, {
-        reply: buildHandlerErrorReply(language),
+        reply,
         intent: 'error',
         parsed: payload,
         error: error instanceof Error ? error.message : String(error),
@@ -225,8 +215,12 @@ export class AgentService {
     if (dto.actionId === 'recurring_budget_update' || dto.actionId === 'recurring_budget_add') {
       const payloadResult = RECURRING_BUDGET_ACTION_PAYLOAD_SCHEMA.safeParse(dto.payload);
       if (!payloadResult.success) {
+        const fallbackReply = buildHandlerErrorReply(fallbackLanguage);
+        const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, fallbackLanguage);
+        logReplySource({} as AgentPayload, this.logger);
+
         return this.finalizeResponse(user.id, {
-          reply: buildHandlerErrorReply(fallbackLanguage),
+          reply,
           intent: 'error',
           error: 'INVALID_ACTION_PAYLOAD',
         });
@@ -235,8 +229,12 @@ export class AgentService {
     } else {
       const payloadResult = BUDGET_ACTION_PAYLOAD_SCHEMA.safeParse(dto.payload);
       if (!payloadResult.success) {
+        const fallbackReply = buildHandlerErrorReply(fallbackLanguage);
+        const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, fallbackLanguage);
+        logReplySource({} as AgentPayload, this.logger);
+
         return this.finalizeResponse(user.id, {
-          reply: buildHandlerErrorReply(fallbackLanguage),
+          reply,
           intent: 'error',
           error: 'INVALID_ACTION_PAYLOAD',
         });
@@ -278,19 +276,28 @@ export class AgentService {
             language,
           );
           break;
-        default:
+        default: {
+          const fallbackReply = buildUnsupportedIntentReply(language);
+          const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, language);
+          logReplySource({} as AgentPayload, this.logger);
+
           result = {
-            reply: buildUnsupportedIntentReply(language),
+            reply,
             intent: 'error',
           };
           break;
+        }
       }
 
       return this.finalizeResponse(user.id, result);
     } catch (error) {
       this.logger.error('Agent action failed', error instanceof Error ? error.stack : error);
+      const fallbackReply = buildHandlerErrorReply(language);
+      const reply = getReplyWithFallback({} as AgentPayload, fallbackReply, language);
+      logReplySource({} as AgentPayload, this.logger);
+
       return this.finalizeResponse(user.id, {
-        reply: buildHandlerErrorReply(language),
+        reply,
         intent: 'error',
         error: error instanceof Error ? error.message : String(error),
       });
@@ -336,15 +343,156 @@ export class AgentService {
     };
   }
 
+  private async handleQueryIntent(
+    user: PublicUser,
+    payload: AgentPayload,
+    timezone: string,
+    language: AgentLanguage,
+    personalityProfile: PersonalityProfile,
+  ): Promise<AgentChatResult> {
+    // Route to appropriate query handler
+    switch (payload.intent) {
+      case 'query_total':
+      case 'query_by_category':
+        return await this.queryHandler.handleSummary(
+          user,
+          payload,
+          timezone,
+          language,
+          personalityProfile,
+        );
+      case 'list_recent':
+        return await this.queryHandler.handleListRecent(
+          user,
+          payload,
+          timezone,
+          language,
+          personalityProfile,
+        );
+      case 'get_budget_status':
+        return await this.budgetHandler.handleBudgetStatus(
+          user,
+          payload,
+          timezone,
+          language,
+          personalityProfile,
+        );
+      default:
+        throw new Error(`Unsupported query intent: ${payload.intent}`);
+    }
+  }
+
+  private async handleComplexIntent(
+    user: PublicUser,
+    originalMessage: string,
+    payload: AgentPayload,
+    timezone: string,
+    language: AgentLanguage,
+  ): Promise<AgentChatResult> {
+    // For complex intents, use direct handlers without 1-shot LLM generation
+    // This ensures proper business logic (like action buttons for existing budgets)
+    switch (payload.intent) {
+      case 'set_budget':
+        return await this.budgetHandler.handleSetBudget(user, payload, timezone, language);
+      case 'set_recurring_budget':
+        return await this.budgetHandler.handleSetRecurringBudget(
+          user,
+          originalMessage,
+          payload,
+          timezone,
+          language,
+        );
+      case 'set_recurring':
+        return await this.recurringHandler.handleSetRecurring(
+          user,
+          originalMessage,
+          payload,
+          timezone,
+          language,
+        );
+      default:
+        throw new Error(`Unsupported complex intent: ${payload.intent}`);
+    }
+  }
+
+  private async handleTransactionIntent(
+    user: PublicUser,
+    originalMessage: string,
+    payload: AgentPayload,
+    timezone: string,
+    language: AgentLanguage,
+    personalityProfile: PersonalityProfile,
+  ): Promise<AgentChatResult> {
+    // Use 1-shot approach with personality for transaction intents
+    const systemPrompt = buildSystemPromptWithPersonality(
+      personalityProfile,
+      new Date().toISOString(),
+      timezone,
+    );
+
+    const chatMessages: HyperbolicMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: originalMessage },
+    ];
+
+    try {
+      const raw = await this.hyperbolicService.complete(chatMessages, {
+        max_tokens: 450,
+        temperature: 0.3,
+        top_p: 0.8,
+        response_format: { type: 'json_object' },
+      });
+
+      logRawCompletion(this.logger, raw);
+      const enhancedPayload = parseAgentPayload(this.logger, raw);
+
+      // Execute the transaction based on intent (only simple intents)
+      switch (enhancedPayload.intent) {
+        case 'add_expense':
+        case 'add_income':
+          return await this.handleAddTransaction(user, originalMessage, enhancedPayload, language);
+        case 'small_talk':
+          return this.handleSmallTalk(user, enhancedPayload, language);
+        case 'change_personality':
+          return await this.handleChangePersonality(user, enhancedPayload, language);
+        case 'undo_or_delete': {
+          const fallbackReply = buildUndoNotSupportedReply(language);
+          const reply = getReplyWithFallback(enhancedPayload, fallbackReply, language);
+          logReplySource(enhancedPayload, this.logger);
+
+          return {
+            reply,
+            intent: 'clarify',
+            parsed: enhancedPayload,
+          };
+        }
+        default: {
+          const fallbackReply = buildUnsupportedIntentReply(language);
+          const reply = getReplyWithFallback(enhancedPayload, fallbackReply, language);
+          logReplySource(enhancedPayload, this.logger);
+
+          return {
+            reply,
+            intent: 'error',
+            parsed: enhancedPayload,
+          };
+        }
+      }
+    } catch (error) {
+      this.logger.error('Transaction intent processing failed', error);
+      throw error;
+    }
+  }
+
   private async handleAddTransaction(
     user: PublicUser,
     originalMessage: string,
     payload: AgentPayload,
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
-    // Load user personality settings
-    const settings = await this.userSettingsService.getOrCreateSettings(user.id);
-    const personalityProfile = PERSONALITY_PROFILES[settings.aiPersonality];
+    // Load user personality settings (for potential future use)
+    // const settings = await this.userSettingsService.getOrCreateSettings(user.id);
+    // const personalityProfile = PERSONALITY_PROFILES[settings.aiPersonality];
 
     // Gọi handler để tạo transaction
     const result = await this.transactionHandler.handleAddTransaction(
@@ -375,19 +523,19 @@ export class AgentService {
       }
     }
 
-    // Rewrite reply với personality
-    try {
-      const context = `User message: "${originalMessage}"`;
-      result.reply = await this.personalityReplyService.rewriteWithPersonality(
-        result.reply,
-        personalityProfile,
-        language,
-        context,
-      );
-    } catch (error) {
-      this.logger.error('Failed to rewrite reply with personality', error);
-      // Fallback to original reply if rewrite fails
-    }
+    // ❌ XÓA phần rewrite này - giờ LLM tự generate reply trong lần call đầu
+    // try {
+    //   const context = `User message: "${originalMessage}"`;
+    //   result.reply = await this.personalityReplyService.rewriteWithPersonality(
+    //     result.reply,
+    //     personalityProfile,
+    //     language,
+    //     context,
+    //   );
+    // } catch (error) {
+    //   this.logger.error('Failed to rewrite reply with personality', error);
+    //   // Fallback to original reply if rewrite fails
+    // }
 
     return result;
   }
@@ -464,8 +612,12 @@ export class AgentService {
     language: AgentLanguage,
   ): AgentChatResult {
     const name = user.name ?? user.email;
+    const fallbackReply = buildSmallTalkReply(language, name);
+    const reply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
+
     return {
-      reply: buildSmallTalkReply(language, name),
+      reply,
       intent: payload.intent,
       parsed: payload,
     };
@@ -527,8 +679,12 @@ export class AgentService {
     const newPersonality = (payload as AgentPayload & { personality?: string }).personality; // e.g., 'FRIENDLY'
 
     if (!newPersonality || !Object.values(AiPersonality).includes(newPersonality)) {
+      const fallbackReply = this.buildInvalidPersonalityReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: this.buildInvalidPersonalityReply(language),
+        reply,
         intent: 'change_personality',
         parsed: payload,
       };
@@ -536,8 +692,12 @@ export class AgentService {
 
     await this.userSettingsService.updatePersonality(user.id, newPersonality);
 
+    const fallbackReply = this.buildPersonalityChangedReply(language, newPersonality);
+    const reply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
+
     return {
-      reply: this.buildPersonalityChangedReply(language, newPersonality),
+      reply,
       intent: 'change_personality',
       parsed: payload,
     };

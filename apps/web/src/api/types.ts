@@ -170,3 +170,57 @@ export interface UserSettings {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface RecurringRuleDto {
+  id: string;
+  freq: string;
+  dayOfMonth?: number | null;
+  weekday?: number | null;
+  timeOfDay?: string | null;
+  timezone: string;
+  startDate: string;
+  endDate?: string | null;
+  type: TxnType;
+  amount: number;
+  currency: Currency;
+  categoryId?: string | null;
+  note?: string | null;
+  enabled: boolean;
+  nextRunAt: string;
+  lastRunAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTransactionRequest {
+  type: TxnType;
+  amount: number;
+  currency?: Currency;
+  note?: string;
+  occurredAt?: string;
+  categoryId?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface CreateBudgetRequest {
+  month: number;
+  year: number;
+  limitAmount: number;
+  currency?: Currency;
+  categoryId?: string;
+}
+
+export interface CreateRecurringRuleRequest {
+  freq: string;
+  dayOfMonth?: number;
+  weekday?: number;
+  timeOfDay?: string;
+  timezone?: string;
+  startDate: string;
+  endDate?: string;
+  type: TxnType;
+  amount: number;
+  currency?: Currency;
+  categoryId?: string;
+  note?: string;
+}

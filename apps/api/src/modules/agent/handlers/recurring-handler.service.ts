@@ -15,6 +15,7 @@ import {
   formatCurrency,
   formatDate,
 } from '../utils/agent-response.utils';
+import { getReplyWithFallback, logReplySource } from '../utils/reply-fallback.util';
 import { CategoryResolverService } from './category-resolver.service';
 
 const RECURRING_UPDATE_MARKERS = [
@@ -47,8 +48,12 @@ export class RecurringHandlerService {
     language: AgentLanguage,
   ): Promise<AgentChatResult> {
     if (!payload.amount || payload.amount <= 0) {
+      const fallbackReply = buildMissingAmountReply(language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
       return {
-        reply: buildMissingAmountReply(language),
+        reply,
         intent: 'clarify',
         parsed: payload,
       };
@@ -152,16 +157,21 @@ export class RecurringHandlerService {
     const replyBuilder =
       action === 'updated' ? buildRecurringRuleUpdatedReply : buildRecurringRuleCreatedReply;
 
+    const fallbackReply = replyBuilder(language, {
+      type: rule.type,
+      amountLabel,
+      categoryLabel,
+      scheduleLabel,
+      timeLabel: rule.timeOfDay,
+      timezone: rule.timezone,
+      nextRunLabel,
+    });
+
+    const reply = getReplyWithFallback(payload, fallbackReply, language);
+    logReplySource(payload, this.logger);
+
     return {
-      reply: replyBuilder(language, {
-        type: rule.type,
-        amountLabel,
-        categoryLabel,
-        scheduleLabel,
-        timeLabel: rule.timeOfDay,
-        timezone: rule.timezone,
-        nextRunLabel,
-      }),
+      reply,
       intent: payload.intent,
       parsed: payload,
       data: { rule, action },
