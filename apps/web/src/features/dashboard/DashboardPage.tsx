@@ -236,7 +236,6 @@ export function DashboardPage() {
               <ChartsTab
                 doughnutData={doughnutData}
                 lineData={lineData}
-                formatCurrency={formatCurrency}
               />
             )}
 
