@@ -42,32 +42,20 @@ services:
     depends_on:
       - api
 
-  # Nginx Reverse Proxy
+  # Nginx Reverse Proxy (HTTP only - Cloudflare handles SSL)
   nginx:
     image: nginx:alpine
     container_name: expense-nginx
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
     networks:
       - expense-network
     depends_on:
       - api
       - web
-
-  # Certbot for SSL
-  certbot:
-    image: certbot/certbot
-    container_name: expense-certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 networks:
   expense-network:
