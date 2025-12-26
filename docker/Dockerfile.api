@@ -5,12 +5,12 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Copy root package files
+# Copy package files
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/ ./packages/
 
-# Install all dependencies
+# Install all dependencies (including devDependencies for build)
 RUN npm ci --legacy-peer-deps
 
 # ----------------------------
@@ -22,17 +22,24 @@ WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 
-# Copy source code
+# Copy all source code
 COPY . .
 
+# Install API dependencies
+WORKDIR /app/apps/api
+RUN npm ci --legacy-peer-deps
+
 # Generate Prisma client
+WORKDIR /app
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Build the API
 WORKDIR /app/apps/api
 RUN npm run build
+
+# Debug: List dist contents
+RUN ls -la dist/ || echo "dist folder not found"
 
 # ----------------------------
 # Stage 3: Production image
@@ -47,12 +54,21 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy built application
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
+# Copy package.json for production
+COPY --from=builder /app/apps/api/package.json ./package.json
 
-# Copy Prisma client
+# Copy built application from apps/api/dist
+COPY --from=builder /app/apps/api/dist ./dist
+
+# Copy production node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps_api_node_modules
+
+# Merge node_modules
+RUN cp -r ./apps_api_node_modules/* ./node_modules/ 2>/dev/null || true && rm -rf ./apps_api_node_modules
+
+# Copy Prisma
+COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
