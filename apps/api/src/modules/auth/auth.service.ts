@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import * as bcrypt from 'bcryptjs';
@@ -33,7 +33,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto): Promise<{ user: PublicUser; accessToken: string }> {
     const existing = await this.usersService.findByEmail(dto.email);
@@ -143,7 +143,7 @@ export class AuthService {
     };
 
     const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '7d';
-    return this.jwtService.signAsync(payload, { expiresIn });
+    return this.jwtService.signAsync(payload, { expiresIn } as JwtSignOptions);
   }
 
   setAuthCookie(res: Response, token: string): void {

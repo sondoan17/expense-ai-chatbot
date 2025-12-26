@@ -16,10 +16,10 @@
     "format:write": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
     "lint-staged": "lint-staged",
     "prepare": "husky || true",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:generate": "pnpm exec prisma generate",
+    "db:migrate": "pnpm exec prisma migrate deploy",
+    "db:deploy": "pnpm exec prisma migrate deploy",
+    "db:seed": "pnpm exec prisma db seed"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
@@ -39,7 +39,9 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
     "turbo": "^2.1.3",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "prisma": "^6.19.1",
+    "@prisma/client": "^6.19.1"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
