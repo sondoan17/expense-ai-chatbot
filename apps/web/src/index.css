@@ -141,3 +141,26 @@ select:focus {
     --text-muted: #475569;
   }
 }
+
+/* Animate.css optimizations */
+.animate__animated {
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.animate__delay-custom {
+  -webkit-animation-delay: var(--animate-delay, 0ms);
+  animation-delay: var(--animate-delay, 0ms);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate__animated {
+    animation: none !important;
+    transition: none !important;
+  }
+}

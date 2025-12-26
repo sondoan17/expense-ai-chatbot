@@ -14,6 +14,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { ManualEntryPage } from './features/manual-entry/ManualEntryPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ChangePasswordPage } from './features/settings/ChangePasswordPage';
+import { LandingPage } from './features/landing/LandingPage';
 import { AppLayout } from './components/AppLayout';
 import { ToastContainer } from './components/ToastContainer';
 import { muiTheme } from './theme/muiTheme';
@@ -28,6 +29,7 @@ export function App() {
           <AuthProvider>
             <ToastProvider>
               <Routes>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -90,7 +92,7 @@ export function App() {
                     }
                   />
                 </Route>
-                <Route path="*" element={<Navigate to="/app" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <ToastContainer />
             </ToastProvider>

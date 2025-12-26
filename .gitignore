@@ -98,3 +98,7 @@ storybook-static/
 .tmp/
 temp/
 tmp/
+
+# # ---- AI Agent ----
+.agent/
+.shared/
