@@ -19,6 +19,7 @@ services:
       - HYPERBOLIC_API_KEY=${HYPERBOLIC_API_KEY}
       - HYPERBOLIC_MODEL=${HYPERBOLIC_MODEL}
       - WEB_ORIGIN=${WEB_ORIGIN}
+      - RESEND_API_KEY=${RESEND_API_KEY}
     networks:
       - expense-network
     healthcheck:
