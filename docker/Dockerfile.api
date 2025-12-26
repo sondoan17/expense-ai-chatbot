@@ -5,13 +5,16 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
+
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/ ./packages/
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci --legacy-peer-deps
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
 
 # ----------------------------
 # Stage 2: Generate Prisma & Build
@@ -20,26 +23,22 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 
 # Copy all source code
 COPY . .
 
-# Install API dependencies
-WORKDIR /app/apps/api
-RUN npm ci --legacy-peer-deps
-
 # Generate Prisma client
-WORKDIR /app
-RUN npx prisma generate --schema=./prisma/schema.prisma
+RUN pnpm exec prisma generate --schema=./prisma/schema.prisma
 
 # Build the API
 WORKDIR /app/apps/api
-RUN npm run build
-
-# Debug: List dist contents
-RUN ls -la dist/ || echo "dist folder not found"
+RUN pnpm run build
 
 # ----------------------------
 # Stage 3: Production image
@@ -49,6 +48,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+# Install pnpm for prisma CLI
+RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -77,4 +79,4 @@ USER nestjs
 EXPOSE 4000
 
 # Run Prisma migrations and start API
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/apps/api/src/main.js"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy --schema=./prisma/schema.prisma && node dist/apps/api/src/main.js"]

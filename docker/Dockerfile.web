@@ -5,13 +5,16 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Copy root package files
-COPY package.json package-lock.json ./
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/ ./packages/
 
 # Install all dependencies
-RUN npm ci --legacy-peer-deps
+RUN pnpm install --frozen-lockfile
 
 # ----------------------------
 # Stage 2: Build
@@ -19,6 +22,9 @@ RUN npm ci --legacy-peer-deps
 FROM node:20-alpine AS builder
 
 WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -32,7 +38,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Build the web app
 WORKDIR /app/apps/web
-RUN npm run build
+RUN pnpm run build
 
 # ----------------------------
 # Stage 3: Production image (Nginx)

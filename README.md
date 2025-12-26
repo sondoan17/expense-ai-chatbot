@@ -85,27 +85,35 @@ WEB_ORIGIN=http://localhost:5173,http://localhost:4173
 
 ## Running locally
 
-```
-npm install
-npm run db:generate        # prisma generate
-npm run dev                # runs Vite client + Nest API via Turborepo pipelines
+```bash
+# Install pnpm if you haven't already
+npm install -g pnpm
+
+# Install dependencies
+pnpm install
+
+# Generate Prisma client
+pnpm db:generate
+
+# Run development servers (Vite + NestJS via Turborepo)
+pnpm dev
 ```
 
 The dev script proxies `/api/*` to the Nest server so the PWA can call authenticated endpoints during local development.
 
 To apply migrations or seed initial data:
 
-```
-npm run db:migrate         # prisma migrate deploy
-npm run db:seed            # populate base categories (seed script)
+```bash
+pnpm db:migrate         # prisma migrate deploy
+pnpm db:seed            # populate base categories (seed script)
 ```
 
 ## Useful commands
 
-- `npm run build` – turbo builds API and web bundles.
-- `npm run lint` – workspace wide ESLint runs.
-- `npm run test` – placeholder hook for future unit tests.
-- `npm run format` / `npm run format:write` – Prettier in check or write mode.
+- `pnpm build` – turbo builds API and web bundles.
+- `pnpm lint` – workspace wide ESLint runs.
+- `pnpm test` – placeholder hook for future unit tests.
+- `pnpm format` / `pnpm format:write` – Prettier in check or write mode.
 
 ## Testing and quality
 
