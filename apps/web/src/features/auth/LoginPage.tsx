@@ -40,7 +40,7 @@ export function LoginPage() {
               </span>
             </h1>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
-              Đăng nhập bằng email và mật khẩu để trò chuyện với trợ lý chi tiêu.
+              Đăng nhập bằng email và mật khẩu để trò chuyện với Mimi.
             </p>
           </div>
 
