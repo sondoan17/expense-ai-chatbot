@@ -36,9 +36,8 @@ COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# Build the web app
-WORKDIR /app/apps/web
-RUN pnpm run build
+# Build the web app (run from root to ensure node_modules/.bin is in PATH)
+RUN pnpm --filter web run build
 
 # ----------------------------
 # Stage 3: Production image (Nginx)
