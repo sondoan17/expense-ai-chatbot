@@ -26,8 +26,9 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage (including all node_modules with symlinks)
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 # Copy source code
 COPY . .
@@ -36,8 +37,9 @@ COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# Build the web app (run from root to ensure node_modules/.bin is in PATH)
-RUN pnpm --filter web run build
+# Build the web app
+WORKDIR /app/apps/web
+RUN pnpm run build
 
 # ----------------------------
 # Stage 3: Production image (Nginx)
