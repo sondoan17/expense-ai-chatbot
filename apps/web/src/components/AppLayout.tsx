@@ -1,179 +1,223 @@
-﻿import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+﻿import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/api/useAuth';
-import { useOnlineStatus } from '../hooks/utils/useOnlineStatus';
 import {
-  WifiOff,
-  Wifi,
   MessageCircle,
-  PieChart,
   LogOut,
-  Menu,
-  X,
+  PieChart,
   Settings,
   PlusCircle,
+  Sparkles,
+  Bot,
+  Wallet,
+  TrendingUp,
 } from 'lucide-react';
 import { useUserStore } from '../store/user.store';
 import { UserDto } from '../api/types';
 
+// Chatbot types configuration
+const CHATBOTS = [
+  {
+    id: 'expense',
+    name: 'Chi tiêu',
+    icon: Wallet,
+    path: 'chat',
+    color: 'sky',
+    description: 'Ghi nhận chi tiêu',
+  },
+  {
+    id: 'savings',
+    name: 'Tiết kiệm',
+    icon: TrendingUp,
+    path: 'chat',
+    color: 'emerald',
+    description: 'Lập kế hoạch tiết kiệm',
+    disabled: true,
+  },
+  {
+    id: 'advisor',
+    name: 'Tư vấn',
+    icon: Bot,
+    path: 'chat',
+    color: 'purple',
+    description: 'Tư vấn tài chính',
+    disabled: true,
+  },
+];
+
+// Routes that belong to Expense chatbot
+const EXPENSE_ROUTES = ['chat', 'dashboard', 'manual-entry'];
+
 export function AppLayout() {
   const { logout } = useAuth();
   const user = useUserStore((s: { user: UserDto | null }) => s.user);
-  const online = useOnlineStatus();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
+
+  // Check if current route is part of Expense chatbot
+  const isExpenseChatbot = EXPENSE_ROUTES.some((route) =>
+    location.pathname.includes(route),
+  );
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* === BACKDROP OVERLAY (Mobile only) === */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setSidebarOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setSidebarOpen(false);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Đóng sidebar"
-        />
-      )}
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* === TOP NAVBAR === */}
+      <nav className="flex-shrink-0 border-b border-white/10 bg-[var(--bg-surface)]/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Left: Logo + Chatbot Tabs */}
+          <div className="flex items-center gap-6">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/25">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-lg font-bold bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent hidden sm:inline">
+                Mimi
+              </span>
+            </div>
 
-      {/* === SIDEBAR === */}
-      <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-[280px] flex flex-col gap-7 border-r border-slate-700/30
-          bg-gradient-to-b from-slate-900/90 to-slate-800/95 p-6 backdrop-blur-xl transition-transform duration-300
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-400/40 to-sky-500/60 font-bold text-slate-900">
-              MM
-            </span>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Mimi</h2>
-            <p className="m-0 mt-1 text-sm text-slate-400">Trợ lý tài chính cá nhân</p>
+            {/* Chatbot Tabs */}
+            <div className="flex items-center gap-1">
+              {CHATBOTS.map((bot) => {
+                const baseClasses =
+                  'group relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200';
+                const disabledClasses = 'opacity-50 cursor-not-allowed pointer-events-none';
+                const activeClasses =
+                  'bg-gradient-to-r from-sky-500/20 to-sky-600/20 text-[var(--text-primary)] border border-sky-500/30';
+                const inactiveClasses =
+                  'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/60 border border-transparent hover:border-white/10';
+
+                return (
+                  <NavLink
+                    key={bot.id}
+                    to={bot.path}
+                    className={({ isActive }) =>
+                      `${baseClasses} ${bot.disabled ? disabledClasses : isActive ? activeClasses : inactiveClasses}`
+                    }
+                    title={bot.description}
+                  >
+                    <bot.icon className="w-4 h-4" />
+                    <span className="hidden md:inline">{bot.name}</span>
+                    {bot.disabled && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">
+                        Soon
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
           </div>
-          <button
-            className="md:hidden text-slate-400 hover:text-slate-100 transition-all duration-200 p-2 rounded-xl hover:bg-gradient-to-r hover:from-slate-700/30 hover:to-slate-800/30 hover:border hover:border-slate-600/50 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={20} />
-          </button>
+
+          {/* Right: Nav Links + User */}
+          <div className="flex items-center gap-2">
+            {/* Quick Nav - Only show for Expense chatbot */}
+            {isExpenseChatbot && (
+              <>
+                <div className="hidden sm:flex items-center gap-1">
+                  <NavLink
+                    to="dashboard"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                        ? 'bg-[var(--bg-surface)]/80 text-[var(--text-primary)] border border-white/10'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/40'
+                      }`
+                    }
+                  >
+                    <PieChart className="w-4 h-4" />
+                    <span className="hidden lg:inline">Tổng quan</span>
+                  </NavLink>
+                  <NavLink
+                    to="manual-entry"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                        ? 'bg-[var(--bg-surface)]/80 text-[var(--text-primary)] border border-white/10'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/40'
+                      }`
+                    }
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span className="hidden lg:inline">Nhập</span>
+                  </NavLink>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden sm:block w-px h-6 bg-white/10 mx-2" />
+              </>
+            )}
+
+            {/* User Menu */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/app/settings')}
+                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/60 transition-all duration-200"
+                title="Cài đặt"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => navigate('/app/profile')}
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-[var(--bg-surface)]/60 transition-all duration-200"
+                title={user?.email}
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-sky-500/25">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full" />
+                  ) : (
+                    user?.email[0]?.toUpperCase()
+                  )}
+                </div>
+              </button>
+              <button
+                className="p-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
+                onClick={logout}
+                title="Đăng xuất"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex flex-col gap-2 mt-4">
-          <NavLink
-            to="chat"
-            className={({ isActive }) =>
-              `${
-                isActive
-                  ? 'bg-sky-400/20 text-slate-100'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
-              } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
-            }
-          >
-            <MessageCircle size={18} />
-            <span>Trò chuyện</span>
-          </NavLink>
-          <NavLink
-            to="dashboard"
-            className={({ isActive }) =>
-              `${
-                isActive
-                  ? 'bg-sky-400/20 text-slate-100'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
-              } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
-            }
-          >
-            <PieChart size={18} />
-            <span>Tổng quan</span>
-          </NavLink>
-          <NavLink
-            to="manual-entry"
-            className={({ isActive }) =>
-              `${
-                isActive
-                  ? 'bg-sky-400/20 text-slate-100'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
-              } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
-            }
-          >
-            <PlusCircle size={18} />
-            <span>Nhập thủ công</span>
-          </NavLink>
-          <NavLink
-            to="settings"
-            className={({ isActive }) =>
-              `${
-                isActive
-                  ? 'bg-sky-400/20 text-slate-100'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/20'
-              } inline-flex items-center gap-3 rounded-xl px-4 py-2 font-semibold transition`
-            }
-          >
-            <Settings size={18} />
-            <span>Cài đặt</span>
-          </NavLink>
-        </nav>
-
-        <div className="mt-auto flex flex-col gap-3">
-          <button
-            onClick={() => navigate('/app/profile')}
-            className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-slate-300/10 to-slate-400/10 border border-slate-600/20 p-3 hover:from-slate-300/20 hover:to-slate-400/20 hover:border-slate-500/30 transition-all duration-200 cursor-pointer text-left w-full backdrop-blur-sm"
-          >
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-sky-400/20 font-bold">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full" />
-              ) : (
-                user?.email[0]?.toUpperCase()
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="m-0 font-semibold">{user?.name ?? user?.email}</p>
-              <p className="m-0 text-sm text-slate-400">{user?.email}</p>
-            </div>
-          </button>
-          <button
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500/15 to-rose-500/15 border border-red-500/20 px-4 py-2 font-semibold text-rose-200 transition-all duration-200 hover:from-red-500/25 hover:to-rose-500/25 hover:border-red-400/30 backdrop-blur-sm"
-            onClick={logout}
-          >
-            <LogOut size={18} /> Đăng xuất
-          </button>
-        </div>
-      </aside>
+        {/* Mobile: Bottom tabs - Only show for Expense chatbot */}
+        {isExpenseChatbot && (
+          <div className="sm:hidden flex items-center justify-around border-t border-white/5 py-1">
+            <NavLink
+              to="chat"
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${isActive ? 'text-sky-400' : 'text-[var(--text-muted)]'
+                }`
+              }
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Chat</span>
+            </NavLink>
+            <NavLink
+              to="dashboard"
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${isActive ? 'text-sky-400' : 'text-[var(--text-muted)]'
+                }`
+              }
+            >
+              <PieChart className="w-5 h-5" />
+              <span>Tổng quan</span>
+            </NavLink>
+            <NavLink
+              to="manual-entry"
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${isActive ? 'text-sky-400' : 'text-[var(--text-muted)]'
+                }`
+              }
+            >
+              <PlusCircle className="w-5 h-5" />
+              <span>Nhập</span>
+            </NavLink>
+          </div>
+        )}
+      </nav>
 
       {/* === MAIN CONTENT === */}
-      <main
-        className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${
-          sidebarOpen ? 'md:ml-[280px] ml-0' : 'ml-0'
-        }`}
-      >
-        <header className="flex items-center justify-between px-6 py-5">
-          {/* Toggle Button - Always visible */}
-          <button
-            className="text-slate-400 hover:text-slate-100 transition-all duration-200 p-2 rounded-xl hover:bg-gradient-to-r hover:from-slate-700/30 hover:to-slate-800/30 hover:border hover:border-slate-600/50 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu size={22} />
-          </button>
-
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm ${
-              online
-                ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-100'
-                : 'border-red-400/40 bg-red-500/15 text-rose-100'
-            }`}
-          >
-            {online ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{online ? 'Trực tuyến' : 'Ngoại tuyến'}</span>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto px-6 pb-10 pt-6">
-          <Outlet />
-        </div>
+      <main className="flex-1 overflow-auto">
+        <Outlet />
       </main>
     </div>
   );

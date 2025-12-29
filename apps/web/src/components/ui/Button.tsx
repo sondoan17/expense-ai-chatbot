@@ -10,15 +10,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const buttonVariants = {
   primary:
-    'bg-gradient-to-r from-sky-500/80 to-cyan-500/80 border border-sky-400/50 text-white hover:from-sky-500 hover:to-cyan-500 hover:border-sky-400/70',
+    'bg-gradient-to-r from-sky-400 to-blue-600 border border-sky-400/50 text-white hover:shadow-lg hover:shadow-sky-500/25',
   secondary:
-    'bg-gradient-to-r from-slate-700/60 to-slate-800/60 border border-slate-600/50 text-slate-200 hover:from-slate-600/70 hover:to-slate-700/70 hover:border-slate-500/70',
+    'bg-[var(--bg-surface)]/60 border border-white/10 text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/80 hover:border-white/20',
   danger:
-    'bg-gradient-to-r from-red-600/80 to-red-700/80 border border-red-500/50 text-white hover:from-red-600 hover:to-red-700 hover:border-red-400/70',
+    'bg-gradient-to-r from-red-500 to-red-600 border border-red-400/50 text-white hover:shadow-lg hover:shadow-red-500/25',
   ghost:
-    'bg-gradient-to-r from-slate-700/30 to-slate-800/30 border border-slate-600/30 text-slate-300 hover:from-slate-600/40 hover:to-slate-700/40 hover:border-slate-500/40',
+    'bg-transparent border border-white/10 text-[var(--text-muted)] hover:bg-[var(--bg-surface)]/40 hover:border-white/20 hover:text-[var(--text-primary)]',
   action:
-    'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-400/30 text-slate-100 hover:from-indigo-500/30 hover:to-purple-500/30 hover:border-indigo-400/50',
+    'bg-[var(--bg-surface)]/50 border border-white/10 text-[var(--text-primary)] hover:bg-[var(--bg-surface)]/80 hover:border-sky-500/30',
 };
 
 const buttonSizes = {

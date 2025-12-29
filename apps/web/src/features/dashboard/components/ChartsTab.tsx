@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { Box, Paper, Typography } from '@mui/material';
-import { PieChart } from '@mui/x-charts/PieChart';
-import { LineChart } from '@mui/x-charts/LineChart';
+import { PieChart, BarChart3 } from 'lucide-react';
 
 interface ChartsTabProps {
   doughnutData: { labels: string[]; datasets: { data: number[] }[] } | null;
@@ -14,31 +12,22 @@ interface ChartsTabProps {
       backgroundColor?: string;
     }[];
   } | null;
+  formatCurrency?: (n: number) => string;
   topN?: number;
 }
 
-export function ChartsTab({
-  doughnutData,
-  lineData,
-  topN = 6,
-}: ChartsTabProps) {
-  // ===== Helpers =====
-  const palette = useMemo(
-    () => [
-      '#38bdf8',
-      '#34d399',
-      '#a78bfa',
-      '#f472b6',
-      '#f59e0b',
-      '#60a5fa',
-      '#22d3ee',
-      '#fb7185',
-      '#84cc16',
-      '#e879f9',
-    ],
-    [],
-  );
+const palette = [
+  '#38bdf8', // sky
+  '#34d399', // emerald
+  '#a78bfa', // violet
+  '#f472b6', // pink
+  '#fbbf24', // amber
+  '#60a5fa', // blue
+  '#22d3ee', // cyan
+  '#fb7185', // rose
+];
 
+export function ChartsTab({ doughnutData, formatCurrency, topN = 6 }: ChartsTabProps) {
   const pieData = useMemo(() => {
     if (!doughnutData) return [];
     const labels = doughnutData.labels ?? [];
@@ -49,93 +38,107 @@ export function ChartsTab({
     const top = sorted.slice(0, topN);
     const rest = sorted.slice(topN);
     const otherTotal = rest.reduce((s, x) => s + x.value, 0);
-    const finalPairs = otherTotal > 0 ? [...top, { label: 'Khác', value: otherTotal }] : top;
+    return otherTotal > 0 ? [...top, { label: 'Khác', value: otherTotal }] : top;
+  }, [doughnutData, topN]);
 
-    return finalPairs.map((item, index) => ({
-      id: index,
-      value: item.value,
-      label: item.label,
-      color: palette[index % palette.length],
-    }));
-  }, [doughnutData, palette, topN]);
-
-  const lineChartData = useMemo(() => {
-    if (!lineData || !lineData.labels) return [];
-
-    return lineData.datasets.map((dataset, index) => ({
-      id: dataset.label,
-      label: dataset.label,
-      data: dataset.data.map((value) => value || 0),
-      color: dataset.borderColor || palette[index % palette.length],
-    }));
-  }, [lineData, palette]);
+  const total = useMemo(() => pieData.reduce((s, x) => s + x.value, 0), [pieData]);
+  const maxValue = useMemo(() => Math.max(...pieData.map((x) => x.value), 1), [pieData]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Pie Chart */}
-      <Paper elevation={0} sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-          Phân bổ chi tiêu theo danh mục
-        </Typography>
-        <Box sx={{ height: 400, width: '100%' }}>
-          {pieData.length > 0 ? (
-            <PieChart
-              series={[
-                {
-                  data: pieData,
-                  highlightScope: { fade: 'global', highlight: 'item' },
-                },
-              ]}
-              width={400}
-              height={400}
-            />
-          ) : (
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Typography color="text.secondary">Chưa có dữ liệu chi tiêu</Typography>
-            </Box>
-          )}
-        </Box>
-      </Paper>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Category Breakdown */}
+      <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-[var(--bg-surface)]/60 backdrop-blur-sm p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-6">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center">
+            <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)]">
+              Chi tiêu theo danh mục
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">Phân bổ chi tiêu của bạn</p>
+          </div>
+        </div>
 
-      {/* Line Chart */}
-      <Paper elevation={0} sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-          Dòng tiền gần đây
-        </Typography>
-        <Box sx={{ height: 400, width: '100%' }}>
-          {lineChartData.length > 0 && lineData?.labels ? (
-            <LineChart
-              xAxis={[
-                {
-                  data: lineData.labels,
-                  scaleType: 'point',
-                },
-              ]}
-              series={lineChartData}
-              width={400}
-              height={400}
-            />
-          ) : (
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Typography color="text.secondary">Chưa có dữ liệu giao dịch</Typography>
-            </Box>
-          )}
-        </Box>
-      </Paper>
-    </Box>
+        {pieData.length > 0 ? (
+          <div className="space-y-3">
+            {pieData.map((item, index) => {
+              const percentage = total > 0 ? (item.value / total) * 100 : 0;
+              const barWidth = (item.value / maxValue) * 100;
+
+              return (
+                <div key={item.label} className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: palette[index % palette.length] }}
+                      />
+                      <span className="text-xs sm:text-sm text-[var(--text-primary)] truncate">
+                        {item.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs sm:text-sm font-medium text-[var(--text-primary)]">
+                        {formatCurrency ? formatCurrency(item.value) : item.value.toLocaleString()}
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)] w-10 text-right">
+                        {percentage.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 sm:h-2.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500 ease-out group-hover:opacity-80"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: palette[index % palette.length],
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-12 text-center">
+            <BarChart3 className="w-12 h-12 mx-auto mb-3 text-[var(--text-muted)] opacity-50" />
+            <p className="text-sm text-[var(--text-muted)]">Chưa có dữ liệu chi tiêu</p>
+          </div>
+        )}
+      </div>
+
+      {/* Summary Stats */}
+      {pieData.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-white/10 bg-[var(--bg-surface)]/40 p-3 sm:p-4 text-center">
+            <p className="text-xs text-[var(--text-muted)] mb-1">Tổng chi</p>
+            <p className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+              {formatCurrency ? formatCurrency(total) : total.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[var(--bg-surface)]/40 p-3 sm:p-4 text-center">
+            <p className="text-xs text-[var(--text-muted)] mb-1">Danh mục</p>
+            <p className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+              {pieData.length}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[var(--bg-surface)]/40 p-3 sm:p-4 text-center">
+            <p className="text-xs text-[var(--text-muted)] mb-1">Lớn nhất</p>
+            <p className="text-sm sm:text-base font-bold text-sky-400 truncate">
+              {pieData[0]?.label || '—'}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[var(--bg-surface)]/40 p-3 sm:p-4 text-center">
+            <p className="text-xs text-[var(--text-muted)] mb-1">TB/danh mục</p>
+            <p className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+              {formatCurrency
+                ? formatCurrency(total / pieData.length)
+                : (total / pieData.length).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

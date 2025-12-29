@@ -1,28 +1,24 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Box,
-  Container,
-  Stack,
-  Tabs,
-  Tab,
-  Paper,
-  Typography,
-  Avatar,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import { Refresh, TrendingUp, TrendingDown, Wallet, CalendarToday } from '@mui/icons-material';
+import { RefreshCw, Wallet, TrendingUp, BarChart3, PiggyBank, History } from 'lucide-react';
 import { useSummary, useOverview, useBudgetStatus } from '../../hooks/api/useDashboardApi';
-// stat card used in child component
 import { OverviewTab } from './components/OverviewTab';
 import { ChartsTab } from './components/ChartsTab';
 import { BudgetsTab } from './components/BudgetsTab';
 import { RecentTab } from './components/RecentTab';
 import { formatCurrency, formatDate } from '../../utils/format';
-// currency type used in child components
+
+const tabs = [
+  { id: 'overview', label: 'Tổng quan', shortLabel: 'Tổng', icon: TrendingUp },
+  { id: 'charts', label: 'Biểu đồ', shortLabel: 'Đồ thị', icon: BarChart3 },
+  { id: 'budgets', label: 'Ngân sách', shortLabel: 'NS', icon: PiggyBank },
+  { id: 'recent', label: 'Lịch sử', shortLabel: 'LS', icon: History },
+] as const;
+
+type TabId = (typeof tabs)[number]['id'];
 
 export function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const summaryQuery = useSummary(selectedPeriod);
   const overviewQuery = useOverview();
@@ -92,131 +88,77 @@ export function DashboardPage() {
     };
   }, [overview]);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'budgets' | 'recent'>(
-    'overview',
-  );
-
   return (
-    <Box sx={{ height: '100%', overflow: 'hidden' }}>
-      <Container maxWidth={false} sx={{ height: '100%', py: 2 }}>
-        <Stack spacing={3} sx={{ height: '100%' }}>
+    <div className="h-full overflow-hidden">
+      <div className="h-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+        <div className="h-full flex flex-col gap-4 sm:gap-6">
           {/* Header */}
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 3,
-              border: '1px solid rgba(148, 163, 184, 0.16)',
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
-              backdropFilter: 'blur(20px)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              overflow: 'hidden',
-            }}
-          >
-            <Box sx={{ p: 3, pb: 2 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box sx={{ flex: 1 }}>
-                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
-                    <Avatar
-                      sx={{
-                        bgcolor: 'primary.main',
-                        width: 48,
-                        height: 48,
-                        background: 'linear-gradient(135deg, #38bdf8, #22d3ee)',
-                      }}
-                    >
-                      <Wallet />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-                        Bảng điều khiển
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                        Theo dõi tổng quan thu chi và ngân sách được cập nhật liên tục
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
+          <header className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[var(--bg-surface)]/80 backdrop-blur-xl overflow-hidden sticky top-0 z-10">
+            {/* Title Bar */}
+            <div className="p-3 sm:p-4 lg:p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  {/* Avatar - hidden on mobile */}
+                  <div className="hidden sm:flex w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 items-center justify-center shadow-lg shadow-sky-500/20">
+                    <Wallet className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-[var(--text-primary)]">
+                      Tổng quan
+                    </h1>
+                    <p className="hidden sm:block text-xs lg:text-sm text-[var(--text-muted)]">
+                      Theo dõi thu chi và ngân sách
+                    </p>
+                  </div>
+                </div>
 
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Tooltip title="Cập nhật dữ liệu">
-                    <IconButton
-                      onClick={handleRefresh}
-                      disabled={isRefreshing}
-                      sx={{
-                        bgcolor: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.2)',
-                        '&:hover': {
-                          bgcolor: 'rgba(56, 189, 248, 0.2)',
-                          transform: 'scale(1.05)',
-                        },
-                        '&:disabled': {
-                          opacity: 0.6,
-                        },
-                      }}
-                    >
-                      <Refresh sx={{ color: 'primary.main' }} />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              </Stack>
-            </Box>
-
-            <Box sx={{ px: 3, py: 2, borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
-              <Tabs
-                value={activeTab}
-                onChange={(_, newValue) => setActiveTab(newValue)}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  '& .MuiTabs-indicator': {
-                    height: 3,
-                    borderRadius: '2px 2px 0 0',
-                    background: 'linear-gradient(90deg, #38bdf8, #22d3ee)',
-                  },
-                }}
-              >
-                {[
-                  { id: 'overview', label: 'Tổng quan', icon: <TrendingUp /> },
-                  { id: 'charts', label: 'Biểu đồ', icon: <TrendingDown /> },
-                  { id: 'budgets', label: 'Ngân sách', icon: <Wallet /> },
-                  { id: 'recent', label: 'Lịch sử', icon: <CalendarToday /> },
-                ].map((tab) => (
-                  <Tab
-                    key={tab.id}
-                    label={tab.label}
-                    value={tab.id}
-                    icon={tab.icon}
-                    iconPosition="start"
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      minHeight: 'auto',
-                      px: 3,
-                      py: 1.5,
-                      mr: 1,
-                      color: 'text.secondary',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                        color: 'text.primary',
-                      },
-                      '&.Mui-selected': {
-                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                        color: 'primary.main',
-                        fontWeight: 700,
-                      },
-                    }}
+                {/* Refresh Button */}
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center hover:bg-sky-500/20 hover:border-sky-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-sky-400 ${isRefreshing ? 'animate-spin' : ''}`}
                   />
-                ))}
-              </Tabs>
-            </Box>
-          </Paper>
+                </button>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="px-2 sm:px-3 lg:px-4 pb-2 sm:pb-3 border-t border-white/5">
+              <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide pt-2 sm:pt-3">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`
+                        flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-xl
+                        text-xs sm:text-sm font-semibold whitespace-nowrap
+                        transition-all duration-200 cursor-pointer
+                        ${isActive
+                          ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 border border-transparent'
+                        }
+                      `}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {/* Full label on lg+, short label on sm-md, icon only on xs */}
+                      <span className="hidden lg:inline">{tab.label}</span>
+                      <span className="hidden sm:inline lg:hidden">{tab.shortLabel}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </header>
 
           {/* Content */}
-          <Box sx={{ flex: 1, overflow: 'auto' }}>
+          <main className="flex-1 overflow-auto pb-4">
             {activeTab === 'overview' && (
               <OverviewTab
                 totals={summary ? summary.totals : null}
@@ -233,10 +175,7 @@ export function DashboardPage() {
             )}
 
             {activeTab === 'charts' && (
-              <ChartsTab
-                doughnutData={doughnutData}
-                lineData={lineData}
-              />
+              <ChartsTab doughnutData={doughnutData} lineData={lineData} />
             )}
 
             {activeTab === 'budgets' && (
@@ -255,9 +194,9 @@ export function DashboardPage() {
                 formatCurrency={formatCurrency}
               />
             )}
-          </Box>
-        </Stack>
-      </Container>
-    </Box>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 }

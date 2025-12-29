@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { ChatBubble } from './components/ChatBubble';
 import { ChatComposer } from './components/ChatComposer';
 import { AgentChatResponse, ChatMessageDto } from '../../api/types';
@@ -477,90 +478,97 @@ export function ChatPage() {
   const isEmpty = combinedMessages.length === 0;
 
   return (
-    <div className="grid h-[calc(100vh-120px)] sm:h-[calc(100vh-120px)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-none sm:rounded-3xl border border-slate-800/40 bg-slate-900/40 backdrop-blur-xl">
-      <header className="flex items-center justify-between border-b border-slate-700/40 px-3 sm:px-5 py-3 sm:py-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="m-0 text-lg sm:text-xl font-semibold tracking-tight truncate">
-            Trò chuyện với trợ lý chi tiêu
-          </h1>
-          <p className="m-0 mt-1 text-xs sm:text-sm text-slate-400 hidden sm:block">
-            Ghi chép chi tiêu, theo dõi nguồn ngân sách và yêu cầu báo cáo ngay trong trò chuyện.
-          </p>
-        </div>
-      </header>
-      <div
-        className="relative flex flex-col gap-3 sm:gap-4 overflow-y-auto bg-gradient-to-b from-slate-900/80 to-slate-900/60 p-3 sm:p-5"
-        ref={listRef}
-      >
-        {isFetchingNextPage && (
-          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-            Đang tải thêm tin nhắn...
-          </div>
-        )}
-        {isEmpty ? (
-          <div
-            className="empty-state"
-            style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
-          >
-            {historyLoading
-              ? 'Đang tải lịch sử hội thoại...'
-              : 'Bắt đầu bằng câu "Ghi lại khoản trách nhiệm 55k" để xem trợ lý ghi nhận giao dịch.'}
-          </div>
-        ) : (
-          combinedMessages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              role={message.role}
-              status={message.status}
-              timestamp={new Date(message.timestamp).toLocaleTimeString('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            >
-              <div>{message.content}</div>
-              {message.actions?.length ? (
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  {message.actions.map((action) => (
-                    <ActionButton
-                      key={`${message.id}-${action.id}`}
-                      size="sm"
-                      className="text-xs sm:text-sm"
-                      onClick={() => handleActionClick(message.id, action)}
-                      disabled={message.actionProcessing || !online || message.status !== 'sent'}
-                    >
-                      {action.label}
-                    </ActionButton>
-                  ))}
-                </div>
-              ) : null}
-            </ChatBubble>
-          ))
-        )}
-
-        {/* Scroll to bottom button */}
-        {showScrollButton && (
-          <button
-            className="fixed bottom-[120px] right-4 sm:right-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-slate-600/50 bg-gradient-to-r from-slate-800/90 to-slate-900/90 text-base sm:text-lg font-bold text-slate-100 shadow-lg backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:from-indigo-500/20 hover:to-purple-500/20 hover:border-indigo-400/50"
-            onClick={scrollToBottom}
-            title="Xuống tin nhắn mới nhất"
-          >
-            ↓
-          </button>
-        )}
+    <div className="relative h-full">
+      {/* Background Effects */}
+      <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-b from-sky-500/10 via-blue-500/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-0 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-3xl" />
       </div>
-      <div className="flex flex-col gap-2 sm:gap-3 border-t border-slate-700/40 bg-gradient-to-b from-slate-900/90 to-slate-900/80 px-3 sm:px-5 py-3 sm:py-4">
-        <div className="-mx-3 sm:mx-0">
-          {' '}
-          <div
-            className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-x-visible px-3 sm:px-0 no-scrollbar scroll-smooth snap-x snap-mandatory"
-            role="tablist"
-            aria-label="Suggestions"
-          >
-            {suggestionButtons}
-          </div>
-        </div>
 
-        <ChatComposer onSend={handleSend} disabled={sendMessageMutation.isPending} />
+      <div className="flex flex-col h-full">
+        <div
+          className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto p-4 sm:p-6"
+          ref={listRef}
+        >
+          {isFetchingNextPage && (
+            <div className="text-center py-4 text-[var(--text-muted)]">
+              <div className="inline-flex items-center gap-2">
+                <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
+          {isEmpty ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center px-6 py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-sky-400/20 to-blue-500/20 border border-sky-500/30 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center">
+                    <span className="text-white text-lg">💬</span>
+                  </div>
+                </div>
+                <p className="text-[var(--text-muted)] text-sm sm:text-base max-w-md">
+                  {historyLoading
+                    ? 'Đang tải lịch sử hội thoại...'
+                    : 'Bắt đầu trò chuyện với Mimi! Thử nói "Ăn phở 50k" hoặc "Tháng này tôi tiêu bao nhiêu?"'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            combinedMessages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                role={message.role}
+                status={message.status}
+                timestamp={new Date(message.timestamp).toLocaleTimeString('vi-VN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              >
+                <div>{message.content}</div>
+                {message.actions?.length ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {message.actions.map((action) => (
+                      <ActionButton
+                        key={`${message.id}-${action.id}`}
+                        size="sm"
+                        className="text-xs sm:text-sm"
+                        onClick={() => handleActionClick(message.id, action)}
+                        disabled={message.actionProcessing || !online || message.status !== 'sent'}
+                      >
+                        {action.label}
+                      </ActionButton>
+                    ))}
+                  </div>
+                ) : null}
+              </ChatBubble>
+            ))
+          )}
+
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <button
+              className="fixed bottom-[120px] right-4 sm:right-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-white/10 bg-[var(--bg-surface)]/80 backdrop-blur-xl text-base sm:text-lg font-bold text-slate-100 shadow-lg shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-sky-500/10"
+              onClick={scrollToBottom}
+              title="Xuống tin nhắn mới nhất"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        <div className="flex-shrink-0 border-t border-white/10 bg-[var(--bg-surface)]/60 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4">
+          <div className="mb-3">
+            <div
+              className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-x-visible no-scrollbar scroll-smooth"
+              role="tablist"
+              aria-label="Suggestions"
+            >
+              {suggestionButtons}
+            </div>
+          </div>
+
+          <ChatComposer onSend={handleSend} disabled={sendMessageMutation.isPending} />
+        </div>
       </div>
     </div>
   );
