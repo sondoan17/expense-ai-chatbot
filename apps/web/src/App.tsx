@@ -2,7 +2,7 @@
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { QueryProvider } from './providers/QueryProvider';
-import { AuthProvider, RequireAuth } from './hooks/api/useAuth';
+import { AuthProvider, RequireAuth , useAuth } from './hooks/api/useAuth';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
@@ -20,6 +20,22 @@ import { ToastContainer } from './components/ToastContainer';
 import { muiTheme } from './theme/muiTheme';
 import { Suspense } from 'react';
 import { AnimatePresence, motion, Transition } from 'framer-motion';
+
+
+// Component to redirect authenticated users to the app
+function RedirectIfAuthenticated({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Đang tải...</div>;
+  }
+
+  if (user) {
+    return <Navigate to="/app/chat" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 const pageTransition: Transition = {
   type: 'tween',
@@ -72,7 +88,7 @@ function AppRoutes() {
       {/* Other routes without animation */}
       {!isAuthPage && (
         <Routes location={location}>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<RedirectIfAuthenticated><LandingPage /></RedirectIfAuthenticated>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
