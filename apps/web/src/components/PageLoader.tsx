@@ -1,13 +1,13 @@
 // Suspense fallback loader for lazy-loaded pages
 export function PageLoader() {
     return (
-        <div className="flex items-center justify-center p-8">
+        <div className="flex items-center justify-center p-8 min-h-[200px] bg-[var(--bg-primary)]">
             <div className="loader" />
             <style>{`
         .loader {
           width: 35px;
           aspect-ratio: 1;
-          --_g: no-repeat radial-gradient(farthest-side, #667eea 94%, #0000);
+          --_g: no-repeat radial-gradient(farthest-side, #38bdf8 94%, #0000);
           background:
             var(--_g) 0 0,
             var(--_g) 100% 0,
