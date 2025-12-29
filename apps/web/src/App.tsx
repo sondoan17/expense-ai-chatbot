@@ -1,9 +1,25 @@
-﻿import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+﻿// External libraries
+import { Suspense } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
+import { AnimatePresence, motion, Transition } from 'framer-motion';
+
+// Providers and contexts
 import { QueryProvider } from './providers/QueryProvider';
-import { AuthProvider, RequireAuth , useAuth } from './hooks/api/useAuth';
+import { AuthProvider, RequireAuth, useAuth } from './hooks/api/useAuth';
 import { ToastProvider } from './contexts/ToastContext';
+
+// Theme
+import { muiTheme } from './theme/muiTheme';
+
+// Components
+import { AppLayout } from './components/AppLayout';
+import { ToastContainer } from './components/ToastContainer';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { PageLoader } from './components/PageLoader';
+
+// Pages
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
@@ -15,19 +31,32 @@ import { ManualEntryPage } from './features/manual-entry/ManualEntryPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ChangePasswordPage } from './features/settings/ChangePasswordPage';
 import { LandingPage } from './features/landing/LandingPage';
-import { AppLayout } from './components/AppLayout';
-import { ToastContainer } from './components/ToastContainer';
-import { muiTheme } from './theme/muiTheme';
-import { Suspense } from 'react';
-import { AnimatePresence, motion, Transition } from 'framer-motion';
 
+// Types
+interface AnimatedAuthPageProps {
+  children: React.ReactNode;
+  direction: 'left' | 'right';
+}
 
-// Component to redirect authenticated users to the app
-function RedirectIfAuthenticated({ children }: { children: React.ReactNode }) {
+interface RedirectIfAuthenticatedProps {
+  children: React.ReactNode;
+}
+
+// Constants
+const PAGE_TRANSITION: Transition = {
+  type: 'tween',
+  duration: 0.35,
+  ease: [0.25, 0.46, 0.45, 0.94],
+};
+
+const AUTH_ROUTES = ['/login', '/register'];
+
+// Redirect authenticated users to the app
+function RedirectIfAuthenticated({ children }: RedirectIfAuthenticatedProps) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Đang tải...</div>;
+    return <LoadingSpinner />;
   }
 
   if (user) {
@@ -37,27 +66,15 @@ function RedirectIfAuthenticated({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const pageTransition: Transition = {
-  type: 'tween',
-  duration: 0.35,
-  ease: [0.25, 0.46, 0.45, 0.94],
-};
-
 // Animated page wrapper for auth pages
-function AnimatedAuthPage({
-  children,
-  direction,
-}: {
-  children: React.ReactNode;
-  direction: 'left' | 'right';
-}) {
+function AnimatedAuthPage({ children, direction }: AnimatedAuthPageProps) {
   return (
     <motion.div
       initial={{ x: direction === 'right' ? '100%' : '-100%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: direction === 'right' ? '-100%' : '100%', opacity: 0 }}
-      transition={pageTransition}
-      style={{ position: 'absolute', width: '100%', height: '100%' }}
+      transition={PAGE_TRANSITION}
+      className="absolute w-full h-full"
     >
       {children}
     </motion.div>
@@ -67,7 +84,7 @@ function AnimatedAuthPage({
 // App routes with AnimatePresence for auth pages
 function AppRoutes() {
   const location = useLocation();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const isAuthPage = AUTH_ROUTES.includes(location.pathname);
 
   return (
     <>
@@ -88,7 +105,14 @@ function AppRoutes() {
       {/* Other routes without animation */}
       {!isAuthPage && (
         <Routes location={location}>
-          <Route path="/" element={<RedirectIfAuthenticated><LandingPage /></RedirectIfAuthenticated>} />
+          <Route
+            path="/"
+            element={
+              <RedirectIfAuthenticated>
+                <LandingPage />
+              </RedirectIfAuthenticated>
+            }
+          />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
@@ -103,7 +127,7 @@ function AppRoutes() {
             <Route
               path="chat"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <ChatPage />
                 </Suspense>
               }
@@ -111,7 +135,7 @@ function AppRoutes() {
             <Route
               path="dashboard"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <DashboardPage />
                 </Suspense>
               }
@@ -119,7 +143,7 @@ function AppRoutes() {
             <Route
               path="manual-entry"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <ManualEntryPage />
                 </Suspense>
               }
@@ -127,7 +151,7 @@ function AppRoutes() {
             <Route
               path="profile"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <ProfilePage />
                 </Suspense>
               }
@@ -135,7 +159,7 @@ function AppRoutes() {
             <Route
               path="settings"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <SettingsPage />
                 </Suspense>
               }
@@ -143,7 +167,7 @@ function AppRoutes() {
             <Route
               path="change-password"
               element={
-                <Suspense fallback={<div style={{ padding: '2rem' }}>Đang tải...</div>}>
+                <Suspense fallback={<PageLoader />}>
                   <ChangePasswordPage />
                 </Suspense>
               }
@@ -156,6 +180,7 @@ function AppRoutes() {
   );
 }
 
+// Main App Component
 export function App() {
   return (
     <ThemeProvider theme={muiTheme}>
@@ -164,7 +189,7 @@ export function App() {
         <BrowserRouter>
           <AuthProvider>
             <ToastProvider>
-              <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+              <div className="relative min-h-screen overflow-hidden">
                 <AppRoutes />
               </div>
               <ToastContainer />

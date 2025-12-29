@@ -1,37 +1,37 @@
 # 🚀 Deployment Guide - Expense AI Chatbot
 
-Hướng dẫn deploy ứng dụng lên VPS sử dụng Docker, Nginx và **Cloudflare SSL**.
+A guide to deploying the application on a VPS using Docker, Nginx, and **Cloudflare SSL**.
 
 ---
 
-## 📑 Mục lục
+## 📑 Table of Contents
 
-1. [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-2. [Kiến trúc hệ thống](#️-kiến-trúc-hệ-thống)
-3. [Chuẩn bị VPS](#-bước-1-chuẩn-bị-vps)
-4. [Cấu hình Cloudflare](#-bước-2-cấu-hình-cloudflare)
-5. [Clone Repository](#-bước-3-clone-repository)
-6. [Cấu hình Environment](#️-bước-4-cấu-hình-environment)
-7. [Build và Deploy](#-bước-5-build-và-deploy)
-8. [Verify Deployment](#-bước-6-verify-deployment)
-9. [Commands thường dùng](#-commands-thường-dùng)
+1. [System Requirements](#-system-requirements)
+2. [System Architecture](#️-system-architecture)
+3. [Prepare VPS](#-step-1-prepare-vps)
+4. [Configure Cloudflare](#-step-2-configure-cloudflare)
+5. [Clone Repository](#-step-3-clone-repository)
+6. [Configure Environment](#️-step-4-configure-environment)
+7. [Build and Deploy](#-step-5-build-and-deploy)
+8. [Verify Deployment](#-step-6-verify-deployment)
+9. [Common Commands](#-common-commands)
 10. [Update Deployment](#-update-deployment)
 11. [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 📋 Yêu cầu hệ thống
+## 📋 System Requirements
 
-| Resource | Minimum | Khuyến nghị |
-|----------|---------|-------------|
-| RAM | 2 GB | 4 GB |
-| CPU | 1 vCPU | 2 vCPU |
-| Storage | 20 GB SSD | 40 GB SSD |
-| OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
+| Resource | Minimum          | Recommended      |
+| -------- | ---------------- | ---------------- |
+| RAM      | 2 GB             | 4 GB             |
+| CPU      | 1 vCPU           | 2 vCPU           |
+| Storage  | 20 GB SSD        | 40 GB SSD        |
+| OS       | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## 🏗️ System Architecture
 
 ```
     User (HTTPS)
@@ -64,26 +64,27 @@ Hướng dẫn deploy ứng dụng lên VPS sử dụng Docker, Nginx và **Clou
   └─────────────────────────────────────┘
 ```
 
-**Lợi ích của Cloudflare Proxy:**
-- ✅ SSL tự động (không cần Let's Encrypt)
+**Benefits of Cloudflare Proxy:**
+
+- ✅ Automatic SSL (no need for Let's Encrypt)
 - ✅ DDoS protection
 - ✅ CDN caching
-- ✅ Ẩn IP thật của VPS
-- ✅ Cấu hình đơn giản hơn
+- ✅ Hides real VPS IP
+- ✅ Simpler configuration
 
 ---
 
-## 🔧 Bước 1: Chuẩn bị VPS
+## 🔧 Step 1: Prepare VPS
 
-### 1.1 Kết nối SSH
+### 1.1 SSH Connection
 
 ```bash
 ssh root@YOUR_VPS_IP
-# Hoặc
+# Or
 ssh deploy@YOUR_VPS_IP
 ```
 
-### 1.2 Tạo user deploy (nếu chưa có)
+### 1.2 Create deploy user (if not exists)
 
 ```bash
 adduser deploy
@@ -91,93 +92,83 @@ usermod -aG sudo deploy
 su - deploy
 ```
 
-### 1.3 Cài đặt Docker
+### 1.3 Install Docker
 
 ```bash
 # Update packages
 sudo apt update && sudo apt upgrade -y
 
-# Cài đặt Docker
+# Install Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 
-# Thêm user vào docker group
+# Add user to docker group
 sudo usermod -aG docker $USER
 newgrp docker
 
-# Cài đặt Docker Compose
+# Install Docker Compose
 sudo apt install -y docker-compose-plugin
 
-# Verify
+# Verify installation
 docker --version
 docker compose version
 ```
 
-### 1.4 Cấu hình Firewall
+### 1.4 Configure Firewall
 
 ```bash
 sudo ufw allow 22/tcp   # SSH
-sudo ufw allow 80/tcp   # HTTP (Cloudflare sẽ gửi request qua port này)
+sudo ufw allow 80/tcp   # HTTP (Cloudflare sends requests through this port)
 sudo ufw enable
 ```
 
-> ⚠️ **Lưu ý**: Không cần mở port 443 vì Cloudflare xử lý SSL.
+> ⚠️ **Note**: No need to open port 443 as Cloudflare handles SSL.
 
 ---
 
-## 🌐 Bước 2: Cấu hình Cloudflare
+## 🌐 Step 2: Configure Cloudflare
 
-### 2.1 Đăng nhập Cloudflare
-Vào https://dash.cloudflare.com → Chọn domain **mimichatbot.fun** → **DNS**
+### 2.1 Login to Cloudflare
 
-### 2.2 Cập nhật DNS Records
+Go to https://dash.cloudflare.com → Select your domain **mimichatbot.fun** → **DNS**
 
-**Xóa records cũ** trỏ về Vercel/Render (CNAME records)
+### 2.2 Update DNS Records
 
-**Thêm/Sửa records mới:**
+**Delete old records** pointing to Vercel/Render (CNAME records)
 
-| Type | Name | Content | Proxy status |
-|------|------|---------|--------------|
-| A | `@` | `185.128.227.231` | **Proxied** (đám mây 🟠) |
-| A | `www` | `185.128.227.231` | **Proxied** (đám mây 🟠) |
+**Add/Edit new records:**
 
-> ✅ Giữ **Proxied** (màu cam) để Cloudflare xử lý SSL
+| Type | Name  | Content           | Proxy status                  |
+| ---- | ----- | ----------------- | ----------------------------- |
+| A    | `@`   | `185.128.227.231` | **Proxied** (orange cloud 🟠) |
+| A    | `www` | `185.128.227.231` | **Proxied** (orange cloud 🟠) |
 
-### 2.3 Cấu hình SSL/TLS
+> ✅ Keep **Proxied** (orange) to let Cloudflare handle SSL
 
-1. Vào **SSL/TLS** ở sidebar
-2. Chọn tab **Overview**
-3. Đặt mode: **Full** (không phải Full Strict)
+### 2.3 Configure SSL/TLS
 
-```
-┌─────────────────────────────────────────────────┐
-│  SSL/TLS encryption mode                        │
-│                                                 │
-│  ○ Off (not secure)                            │
-│  ○ Flexible                                     │
-│  ● Full           ← CHỌN CÁI NÀY               │
-│  ○ Full (strict)                               │
-└─────────────────────────────────────────────────┘
-```
+1. Go to **SSL/TLS** in sidebar
+2. Select **Overview** tab
+3. Set mode: **Full** (not Full Strict) or **Flexible**
 
-### 2.4 Bật Always Use HTTPS
+### 2.4 Enable Always Use HTTPS
 
-1. Vào **SSL/TLS** → **Edge Certificates**
-2. Bật **Always Use HTTPS**: ON
+1. Go to **SSL/TLS** → **Edge Certificates**
+2. Turn **Always Use HTTPS**: ON
 
-### 2.5 Kiểm tra DNS
+### 2.5 Verify DNS
 
-Chờ 2-5 phút, rồi kiểm tra:
+Wait 2-5 minutes, then verify:
 
 ```bash
 nslookup mimichatbot.fun
 ```
 
-Bạn sẽ thấy IP của Cloudflare (không phải IP VPS) - đó là đúng!
+You'll see Cloudflare's IP (not VPS IP) - that's correct!
 
 ---
 
-## 📥 Bước 3: Clone Repository
+## 📥 Step 3: Clone Repository
 
 ```bash
 cd /opt
@@ -185,21 +176,21 @@ sudo mkdir expense-ai
 sudo chown $USER:$USER expense-ai
 cd expense-ai
 
-git clone https://github.com/YOUR_USERNAME/expense-ai-chatbot.git .
+git clone https://github.com/sondoan17/expense-ai-chatbot.git .
 ```
 
 ---
 
-## ⚙️ Bước 4: Cấu hình Environment
+## ⚙️ Step 4: Configure Environment
 
-### 4.1 Tạo file .env
+### 4.1 Create .env file
 
 ```bash
 cp docker/env.production.example .env
 nano .env
 ```
 
-### 4.2 Cập nhật các giá trị
+### 4.2 Update values
 
 ```env
 # Database
@@ -232,30 +223,31 @@ openssl rand -base64 32
 
 ---
 
-## 🐳 Bước 5: Build và Deploy
+## 🐳 Step 5: Build and Deploy
 
 ```bash
-# Build images (lần đầu mất 5-10 phút)
+# Build images (first time takes 5-10 minutes)
 docker compose build
 
-# Khởi chạy
+# Start services
 docker compose up -d
 
-# Xem logs
+# View logs
 docker compose logs -f
 ```
 
 ---
 
-## ✅ Bước 6: Verify Deployment
+## ✅ Step 6: Verify Deployment
 
-### 6.1 Kiểm tra containers
+### 6.1 Check containers
 
 ```bash
 docker compose ps
 ```
 
-**Output mong đợi:**
+**Expected output:**
+
 ```
 NAME              STATUS
 expense-api       Up (healthy)
@@ -263,27 +255,27 @@ expense-web       Up
 expense-nginx     Up
 ```
 
-### 6.2 Test từ command line
+### 6.2 Test from command line
 
 ```bash
 # Test health check
 curl http://localhost/health
 
-# Test API (từ VPS)
+# Test API (from VPS)
 curl http://localhost/api/health
 ```
 
-### 6.3 Test từ browser
+### 6.3 Test from browser
 
-Mở https://mimichatbot.fun
+Open https://mimichatbot.fun
 
-- ✅ Trang load thành công
-- ✅ Có biểu tượng 🔒 (SSL)
-- ✅ Đăng nhập/đăng ký hoạt động
+- ✅ Page loads successfully
+- ✅ Has 🔒 icon (SSL)
+- ✅ Login/register works
 
 ---
 
-## 🔄 Commands thường dùng
+## 🔄 Common Commands
 
 ```bash
 # Restart services
@@ -292,16 +284,16 @@ docker compose restart
 # Stop all
 docker compose down
 
-# Xem logs
+# View logs
 docker compose logs -f [api|web|nginx]
 
-# Rebuild một service
+# Rebuild a service
 docker compose up -d --build api
 
-# Chạy migrations
+# Run migrations
 docker compose exec api npx prisma migrate deploy
 
-# Vào shell container
+# Shell into container
 docker compose exec api sh
 ```
 
@@ -309,21 +301,21 @@ docker compose exec api sh
 
 ## 🔄 Update Deployment
 
-Khi có code mới:
+When there's new code:
 
 ```bash
 cd /opt/expense-ai
 
-# Pull code mới
+# Pull new code
 git pull origin main
 
-# Rebuild và restart
+# Rebuild and restart
 docker compose up -d --build
 
-# Chạy migrations (nếu có)
+# Run migrations (if any)
 docker compose exec api npx prisma migrate deploy
 
-# Kiểm tra logs
+# Check logs
 docker compose logs -f
 ```
 
@@ -334,32 +326,32 @@ docker compose logs -f
 ### 502 Bad Gateway
 
 ```bash
-# Kiểm tra API đang chạy
+# Check if API is running
 docker compose ps
 docker compose logs api
 ```
 
-### Container không start
+### Container won't start
 
 ```bash
 docker compose logs [service_name]
 ```
 
-### API không kết nối database
+### API can't connect to database
 
-1. Check `DATABASE_URL` trong `.env`
+1. Check `DATABASE_URL` in `.env`
 2. Test connection:
    ```bash
    docker compose exec api sh
-   # Trong container:
+   # Inside container:
    npx prisma db pull
    ```
 
 ### Cloudflare 522 (Connection timed out)
 
-- Kiểm tra VPS đang chạy
-- Kiểm tra port 80 đã mở: `sudo ufw status`
-- Kiểm tra nginx đang chạy: `docker compose ps nginx`
+- Check if VPS is running
+- Check if port 80 is open: `sudo ufw status`
+- Check if nginx is running: `docker compose ps nginx`
 
 ### Cloudflare 521 (Web server is down)
 
@@ -367,14 +359,14 @@ docker compose logs [service_name]
 # Restart nginx
 docker compose restart nginx
 
-# Kiểm tra config
+# Check config
 docker compose exec nginx nginx -t
 ```
 
 ### Out of memory
 
 ```bash
-# Thêm swap 2GB
+# Add 2GB swap
 sudo fallocate -l 2G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
@@ -402,8 +394,8 @@ docker system prune -a
 
 ## 🛡️ Security Notes
 
-- ✅ Cloudflare ẩn IP thật của VPS
-- ✅ DDoS protection tự động
-- ✅ SSL/TLS được quản lý bởi Cloudflare
-- ⚠️ Không commit `.env` vào git
-- ⚠️ Sử dụng strong passwords
+- ✅ Cloudflare hides real VPS IP
+- ✅ Automatic DDoS protection
+- ✅ SSL/TLS managed by Cloudflare
+- ⚠️ Never commit `.env` to git
+- ⚠️ Use strong passwords
