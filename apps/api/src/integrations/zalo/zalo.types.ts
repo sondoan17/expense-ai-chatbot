@@ -44,13 +44,11 @@ export interface ZaloMessage {
 
 /**
  * Webhook payload from Zalo Server
+ * Note: Zalo sends the event directly without ok/result wrapper
  */
 export interface ZaloWebhookPayload {
-  ok: boolean;
-  result: {
-    event_name: ZaloEventName;
-    message?: ZaloMessage;
-  };
+  event_name: ZaloEventName;
+  message?: ZaloMessage;
 }
 
 /**

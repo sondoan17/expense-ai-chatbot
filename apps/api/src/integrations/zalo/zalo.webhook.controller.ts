@@ -49,12 +49,12 @@ export class ZaloWebhookController {
     // 2. Validate payload
     this.logger.debug(`Webhook payload received: ${JSON.stringify(body)}`);
 
-    if (!body?.ok || !body?.result) {
-      this.logger.warn(`Invalid webhook payload: ok=${body?.ok}, result=${!!body?.result}`);
+    if (!body?.event_name) {
+      this.logger.warn(`Invalid webhook payload: missing event_name`);
       return { ok: true };
     }
 
-    const { event_name, message } = body.result;
+    const { event_name, message } = body;
 
     // 3. Only handle text messages for now
     if (event_name !== 'message.text.received') {
