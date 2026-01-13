@@ -47,5 +47,6 @@ import { DataReplyService } from './services/data-reply.service';
     PersonalityReplyService,
     DataReplyService,
   ],
+  exports: [AgentService],
 })
 export class AgentModule {}
