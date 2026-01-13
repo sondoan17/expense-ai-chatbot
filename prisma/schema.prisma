@@ -57,6 +57,7 @@ model User {
   chatMessages        ChatMessage[]
   passwordResetTokens PasswordResetToken[]
   settings            UserSettings?
+  zaloLinks           ZaloUserLink[]
 }
 
 model Category {
@@ -217,4 +218,16 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([expiresAt])
+}
+
+model ZaloUserLink {
+  id          String   @id @default(cuid())
+  zaloUserId  String   @unique // Zalo user ID from webhook (from.id)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String?  // display_name from Zalo
+  linkedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }

@@ -13,6 +13,7 @@ import { AgentModule } from './modules/agent/agent.module';
 import { RecurringModule } from './modules/recurring/recurring.module';
 import { RecurringBudgetsModule } from './modules/recurring-budgets/recurring-budgets.module';
 import { HealthModule } from './modules/health/health.module';
+import { ZaloModule } from './integrations/zalo/zalo.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { HealthModule } from './modules/health/health.module';
     RecurringModule,
     RecurringBudgetsModule,
     HealthModule,
+    ZaloModule,
   ],
 })
 export class AppModule {}
