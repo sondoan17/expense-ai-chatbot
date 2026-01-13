@@ -62,7 +62,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install production dependencies only
+# Create .npmrc to hoist dependencies (makes them directly accessible)
+RUN echo "shamefully-hoist=true" > .npmrc
+
+# Install production dependencies with hoisting
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy Prisma schema and generate client
@@ -74,6 +77,9 @@ COPY --from=builder /app/apps/api/dist ./dist
 
 # Copy shared package dist (needed at runtime)
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+
+# Change ownership
+RUN chown -R nestjs:nodejs /app
 
 USER nestjs
 
