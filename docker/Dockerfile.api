@@ -30,6 +30,9 @@ RUN pnpm run build
 WORKDIR /app/apps/api
 RUN pnpm run build
 
+# Go back to root for copying
+WORKDIR /app
+
 # ----------------------------
 # Stage 2: Production image
 # ----------------------------
@@ -54,11 +57,13 @@ COPY packages/shared/package.json ./packages/shared/
 # Create .npmrc to hoist dependencies
 RUN echo "shamefully-hoist=true" > .npmrc
 
-# Install ALL dependencies
-RUN pnpm install --frozen-lockfile
+# Install ALL dependencies (remove NODE_ENV temporarily to get all deps)
+RUN NODE_ENV=development pnpm install --frozen-lockfile
 
-# Copy Prisma schema and generate client
+# Copy Prisma schema
 COPY --from=builder /app/prisma ./prisma
+
+# Generate Prisma client in runner
 RUN pnpm exec prisma generate --schema=./prisma/schema.prisma
 
 # Copy built application
