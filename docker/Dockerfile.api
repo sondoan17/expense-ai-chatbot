@@ -63,17 +63,11 @@ COPY --from=builder /app/apps/api/package.json ./package.json
 # Copy built application from apps/api/dist
 COPY --from=builder /app/apps/api/dist ./dist
 
-# Copy production node_modules
+# Copy production node_modules (includes generated Prisma client)
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/node_modules ./apps_api_node_modules
 
-# Merge node_modules
-RUN cp -r ./apps_api_node_modules/* ./node_modules/ 2>/dev/null || true && rm -rf ./apps_api_node_modules
-
-# Copy Prisma
+# Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nestjs
 
