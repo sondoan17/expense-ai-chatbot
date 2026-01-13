@@ -1,7 +1,7 @@
 # ----------------------------
-# Stage 1: Install dependencies
+# Stage 1: Install dependencies & Build
 # ----------------------------
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -16,21 +16,6 @@ COPY packages/ ./packages/
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# ----------------------------
-# Stage 2: Generate Prisma & Build
-# ----------------------------
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages ./packages
-
 # Copy all source code
 COPY . .
 
@@ -42,7 +27,7 @@ WORKDIR /app/apps/api
 RUN pnpm run build
 
 # ----------------------------
-# Stage 3: Production image
+# Stage 2: Production image
 # ----------------------------
 FROM node:20-alpine AS runner
 
@@ -57,16 +42,16 @@ RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy package files for production install
+# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Create .npmrc to hoist dependencies (makes them directly accessible)
+# Create .npmrc to hoist dependencies
 RUN echo "shamefully-hoist=true" > .npmrc
 
-# Install production dependencies with hoisting
-RUN pnpm install --frozen-lockfile --prod
+# Install ALL dependencies (not just prod) because NestJS needs decorators at runtime
+RUN pnpm install --frozen-lockfile
 
 # Copy Prisma schema and generate client
 COPY --from=builder /app/prisma ./prisma
@@ -75,7 +60,7 @@ RUN pnpm exec prisma generate --schema=./prisma/schema.prisma
 # Copy built application
 COPY --from=builder /app/apps/api/dist ./dist
 
-# Copy shared package dist (needed at runtime)
+# Copy shared package dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Change ownership
@@ -85,5 +70,5 @@ USER nestjs
 
 EXPOSE 4000
 
-# Run Prisma migrations and start API
+# Start API
 CMD ["sh", "-c", "pnpm exec prisma migrate deploy --schema=./prisma/schema.prisma && node dist/apps/api/src/main.js"]
