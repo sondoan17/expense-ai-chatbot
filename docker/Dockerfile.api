@@ -22,6 +22,10 @@ COPY . .
 # Generate Prisma client
 RUN pnpm exec prisma generate --schema=./prisma/schema.prisma
 
+# Build shared package first
+WORKDIR /app/packages/shared
+RUN pnpm run build
+
 # Build the API
 WORKDIR /app/apps/api
 RUN pnpm run build
@@ -50,7 +54,7 @@ COPY packages/shared/package.json ./packages/shared/
 # Create .npmrc to hoist dependencies
 RUN echo "shamefully-hoist=true" > .npmrc
 
-# Install ALL dependencies (not just prod) because NestJS needs decorators at runtime
+# Install ALL dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy Prisma schema and generate client
