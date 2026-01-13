@@ -29,6 +29,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages ./packages
 
 # Copy all source code
 COPY . .
