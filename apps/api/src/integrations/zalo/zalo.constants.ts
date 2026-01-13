@@ -18,77 +18,77 @@ export const ZALO_COMMANDS = {
  */
 export const ZALO_MESSAGES = {
   vi: {
-    NOT_LINKED: `Ban chua lien ket tai khoan.
+    NOT_LINKED: `Bạn chưa liên kết tài khoản.
 
-De bat dau, gui tin nhan theo mau:
+Để bắt đầu, gửi tin nhắn theo mẫu:
 lienket email@example.com
 
-(Thay email bang email ban da dang ky tren web app)`,
+(Thay email bằng email bạn đã đăng ký trên web app)`,
 
-    LINK_SUCCESS: `Lien ket thanh cong!
+    LINK_SUCCESS: `Liên kết thành công!
 
-Bay gio ban co the nhap thu chi truc tiep qua Zalo. Vi du:
+Bây giờ bạn có thể nhập thu chi trực tiếp qua Zalo. Ví dụ:
 - "chi 50k cafe"
-- "thu 5tr luong"
-- "tong chi thang nay"
+- "thu 5tr lương"
+- "tổng chi tháng này"
 
-Gui "huongdan" de xem them.`,
+Gửi "huongdan" để xem thêm.`,
 
-    LINK_EMAIL_NOT_FOUND: `Email nay khong ton tai trong he thong.
+    LINK_EMAIL_NOT_FOUND: `Email này không tồn tại trong hệ thống.
 
-Vui long:
-1. Kiem tra lai email da nhap
-2. Hoac dang ky tai khoan tai web app truoc`,
+Vui lòng:
+1. Kiểm tra lại email đã nhập
+2. Hoặc đăng ký tài khoản tại web app trước`,
 
-    LINK_ALREADY: `Tai khoan Zalo nay da duoc lien ket.
+    LINK_ALREADY: `Tài khoản Zalo này đã được liên kết.
 
-Ban co the bat dau nhap thu chi ngay. Vi du:
+Bạn có thể bắt đầu nhập thu chi ngay. Ví dụ:
 - "chi 50k cafe"
-- "thu 5tr luong"`,
+- "thu 5tr lương"`,
 
-    UNLINK_SUCCESS: `Da huy lien ket tai khoan thanh cong.
+    UNLINK_SUCCESS: `Đã hủy liên kết tài khoản thành công.
 
-Neu muon lien ket lai, gui:
+Nếu muốn liên kết lại, gửi:
 lienket email@example.com`,
 
-    UNLINK_NOT_FOUND: `Tai khoan chua duoc lien ket.
+    UNLINK_NOT_FOUND: `Tài khoản chưa được liên kết.
 
-De lien ket, gui:
+Để liên kết, gửi:
 lienket email@example.com`,
 
-    HELP: `Huong dan su dung Mimi Bot
+    HELP: `Hướng dẫn sử dụng Mimi Bot
 
-NHAP THU CHI:
+NHẬP THU CHI:
 - "chi 50k cafe"
-- "chi 200k di cho"
-- "thu 10tr luong thang 1"
-- "thu 500k ban hang"
+- "chi 200k đi chợ"
+- "thu 10tr lương tháng 1"
+- "thu 500k bán hàng"
 
-XEM THONG KE:
-- "tong chi thang nay"
-- "tong chi tuan nay"
-- "tong thu thang nay"
-- "chi tieu thang truoc"
+XEM THỐNG KÊ:
+- "tổng chi tháng này"
+- "tổng chi tuần này"
+- "tổng thu tháng này"
+- "chi tiêu tháng trước"
 
-XEM GIAO DICH:
-- "5 giao dich gan day"
-- "lich su chi tieu"
+XEM GIAO DỊCH:
+- "5 giao dịch gần đây"
+- "lịch sử chi tiêu"
 
-NGAN SACH:
-- "dat ngan sach 5tr thang 1"
-- "ngan sach con lai"
+NGÂN SÁCH:
+- "đặt ngân sách 5tr tháng 1"
+- "ngân sách còn lại"
 
-LIEN KET:
+LIÊN KẾT:
 - "lienket email@example.com"
-- "huyket" - huy lien ket`,
+- "huyket" - hủy liên kết`,
 
-    UNSUPPORTED_MESSAGE: `Xin loi, Mimi hien chi ho tro tin nhan van ban.
+    UNSUPPORTED_MESSAGE: `Xin lỗi, Mimi hiện chỉ hỗ trợ tin nhắn văn bản.
 
-Vui long gui tin nhan dang chu de nhap thu chi.`,
+Vui lòng gửi tin nhắn dạng chữ để nhập thu chi.`,
 
-    ERROR: `Co loi xay ra khi xu ly yeu cau cua ban.
+    ERROR: `Có lỗi xảy ra khi xử lý yêu cầu của bạn.
 
-Vui long thu lai sau hoac lien he ho tro.`,
+Vui lòng thử lại sau hoặc liên hệ hỗ trợ.`,
   },
 
   en: {
