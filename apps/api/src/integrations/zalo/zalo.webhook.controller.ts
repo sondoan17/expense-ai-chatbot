@@ -47,8 +47,10 @@ export class ZaloWebhookController {
     }
 
     // 2. Validate payload
+    this.logger.debug(`Webhook payload received: ${JSON.stringify(body)}`);
+
     if (!body?.ok || !body?.result) {
-      this.logger.warn('Invalid webhook payload received');
+      this.logger.warn(`Invalid webhook payload: ok=${body?.ok}, result=${!!body?.result}`);
       return { ok: true };
     }
 
