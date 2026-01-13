@@ -49,7 +49,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy package files
+# Copy package files for workspace install
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
@@ -57,7 +57,7 @@ COPY packages/shared/package.json ./packages/shared/
 # Create .npmrc to hoist dependencies
 RUN echo "shamefully-hoist=true" > .npmrc
 
-# Install ALL dependencies (remove NODE_ENV temporarily to get all deps)
+# Install ALL dependencies
 RUN NODE_ENV=development pnpm install --frozen-lockfile
 
 # Copy Prisma schema
@@ -71,6 +71,10 @@ COPY --from=builder /app/apps/api/dist ./dist
 
 # Copy shared package dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+
+# IMPORTANT: Copy API's package.json to root to set "type": "commonjs"
+# This overrides the root package.json's "type": "module"
+COPY apps/api/package.json ./package.json
 
 # Change ownership
 RUN chown -R nestjs:nodejs /app
