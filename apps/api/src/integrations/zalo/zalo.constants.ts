@@ -58,29 +58,34 @@ lienket email@example.com`,
 
     HELP: `Hướng dẫn sử dụng Mimi Bot
 
-NHẬP THU CHI:
-- "chi 50k cafe"
-- "chi 200k đi chợ"
-- "thu 10tr lương tháng 1"
-- "thu 500k bán hàng"
+NHẬP CHI TIÊU:
+• chi 50k cafe
+• chi 200k đi chợ
+• chi 1tr5 mua quần áo
+
+NHẬP THU NHẬP:
+• thu 10tr lương
+• thu 500k bán hàng
 
 XEM THỐNG KÊ:
-- "tổng chi tháng này"
-- "tổng chi tuần này"
-- "tổng thu tháng này"
-- "chi tiêu tháng trước"
+• tổng chi tháng này
+• tổng thu tuần này
+• chi tiêu tháng trước
 
 XEM GIAO DỊCH:
-- "5 giao dịch gần đây"
-- "lịch sử chi tiêu"
+• 5 giao dịch gần đây
+• lịch sử chi tiêu
 
 NGÂN SÁCH:
-- "đặt ngân sách 5tr tháng 1"
-- "ngân sách còn lại"
+• đặt ngân sách 5tr tháng 1
+• ngân sách còn lại
 
-LIÊN KẾT:
-- "lienket email@example.com"
-- "huyket" - hủy liên kết`,
+LIÊN KẾT TÀI KHOẢN:
+• lienket email@example.com
+• huyket (hủy liên kết)
+
+Truy cập web app để xem báo cáo chi tiết:
+https://mimichatbot.fun/`,
 
     UNSUPPORTED_MESSAGE: `Xin lỗi, Mimi hiện chỉ hỗ trợ tin nhắn văn bản.
 
