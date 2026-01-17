@@ -6,6 +6,7 @@ import {
   UseGuards,
   Post,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,6 +21,8 @@ import * as bcrypt from 'bcryptjs';
 
 @Controller('users')
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly userSettingsService: UserSettingsService,
@@ -45,7 +48,17 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Post('upload-signature')
   getUploadSignature(@CurrentUser() user: PublicUser) {
-    return this.cloudinaryService.generateSignature(`avatars/${user.id}`);
+    this.logger.debug(`getUploadSignature called for user: ${user.id}`);
+    try {
+      const result = this.cloudinaryService.generateSignature(`avatars/${user.id}`);
+      this.logger.debug(`Signature generated successfully for user: ${user.id}`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate signature for user ${user.id}: ${error instanceof Error ? error.message : error}`,
+      );
+      throw error;
+    }
   }
 
   @UseGuards(JwtAuthGuard)
