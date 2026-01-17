@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: expense-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=expense_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=expense
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - expense-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U expense_user -d expense']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # NestJS API Backend
   api:
     build:
@@ -24,6 +43,9 @@ services:
       - ZALO_WEBHOOK_SECRET=${ZALO_WEBHOOK_SECRET}
     networks:
       - expense-network
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:4000/api/health']
@@ -64,3 +86,6 @@ services:
 networks:
   expense-network:
     driver: bridge
+
+volumes:
+  postgres_data:
