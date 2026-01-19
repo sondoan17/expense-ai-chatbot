@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -55,6 +55,13 @@ export function ToastComponent({ toast, onRemove }: ToastProps) {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleRemove = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => {
+      onRemove(toast.id);
+    }, 300); // Match animation duration
+  }, [onRemove, toast.id]);
+
   useEffect(() => {
     // Auto dismiss
     const duration = toast.duration || 5000;
@@ -63,14 +70,7 @@ export function ToastComponent({ toast, onRemove }: ToastProps) {
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [toast.duration]);
-
-  const handleRemove = () => {
-    setIsLeaving(true);
-    setTimeout(() => {
-      onRemove(toast.id);
-    }, 300); // Match animation duration
-  };
+  }, [toast.duration, handleRemove]);
 
   return (
     <div
