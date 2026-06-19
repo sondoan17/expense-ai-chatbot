@@ -56,7 +56,7 @@ export class DataReplyService {
 
     try {
       const response = await this.aiProviderService.complete([{ role: 'user', content: prompt }], {
-        max_tokens: 400,
+        max_tokens: 1000,
         temperature: 0.3, // Low temperature for accuracy
         response_format: { type: 'text' },
       });

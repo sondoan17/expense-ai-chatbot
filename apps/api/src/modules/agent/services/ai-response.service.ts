@@ -75,7 +75,7 @@ export class AIResponseService {
       const response = await this.aiProviderService.complete(
         [{ role: 'user', content: fullPrompt }],
         {
-          max_tokens: 500,
+          max_tokens: 1000,
           temperature: 0.7,
           response_format: { type: 'text' },
         },
