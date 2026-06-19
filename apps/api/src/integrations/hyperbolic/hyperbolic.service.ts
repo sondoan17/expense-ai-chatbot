@@ -51,17 +51,18 @@ export class HyperbolicService {
   private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.url =
-      this.configService.get<string>('HYPERBOLIC_API_URL') ??
-      'https://api.hyperbolic.xyz/v1/chat/completions';
-    this.apiKey = this.configService.get<string>('HYPERBOLIC_API_KEY') ?? '';
-    this.model =
-      this.configService.get<string>('HYPERBOLIC_MODEL') ?? 'Qwen/Qwen3-Next-80B-A3B-Instruct';
+    const providerUrl = this.configService.get<string>('PROVIDER_URL') ?? '';
+
+    this.url = providerUrl.endsWith('/chat/completions')
+      ? providerUrl
+      : `${providerUrl.replace(/\/$/, '')}/chat/completions`;
+    this.apiKey = this.configService.get<string>('PROVIDER_API_KEY') ?? '';
+    this.model = this.configService.get<string>('AI_MODEL') ?? 'cx/gpt-5.5';
   }
 
   async complete(messages: HyperbolicMessage[], options?: HyperbolicOptions): Promise<string> {
     if (!this.apiKey) {
-      throw new Error('Hyperbolic API key is not configured');
+      throw new Error('AI provider API key is not configured');
     }
 
     try {
