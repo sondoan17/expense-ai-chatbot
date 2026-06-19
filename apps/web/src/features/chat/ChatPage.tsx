@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, PiggyBank, Sparkles, WalletCards } from 'lucide-react';
+import { ChevronDown, PiggyBank, ReceiptText, Sparkles, Target, WalletCards } from 'lucide-react';
 import { ChatBubble } from './components/ChatBubble';
 import { ChatComposer } from './components/ChatComposer';
 import { AgentChatResponse, ChatMessageDto } from '../../api/types';
@@ -31,6 +31,21 @@ const SUGGESTIONS = [
 ];
 
 const QUICK_ACTION_LABELS = ['Báo cáo tháng', 'Ngân sách ăn uống', 'Ghi nhận thu nhập'];
+
+const ASSISTANT_GUIDES = [
+  {
+    title: 'Ghi thu chi tức thì',
+    description: 'Nhắn tự nhiên như “Ăn phở 50k” để Mimi tự hiểu số tiền và danh mục.',
+  },
+  {
+    title: 'Theo dõi ngân sách',
+    description: 'Đặt hạn mức theo tháng, sau đó hỏi tình trạng còn lại bất cứ lúc nào.',
+  },
+  {
+    title: 'Hỏi báo cáo nhanh',
+    description: 'Xem tổng chi tiêu, khoản thu hoặc các giao dịch gần đây bằng tiếng Việt.',
+  },
+];
 
 function createMessage(
   role: 'user' | 'assistant',
@@ -486,7 +501,7 @@ export function ChatPage() {
         <div className="absolute right-0 top-1/4 h-[280px] w-[280px] rounded-full bg-sky-300/5 blur-3xl" />
       </div>
 
-      <div className="mx-auto flex h-full max-w-5xl flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
+      <div className="mx-auto flex h-full max-w-7xl flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 xl:px-8">
         <header className="relative z-10 mb-3 overflow-hidden rounded-2xl border border-white/10 bg-[var(--bg-surface)]/80 shadow-lg shadow-black/10 backdrop-blur-xl sm:mb-4 sm:rounded-3xl">
           <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-transparent to-blue-500/10" />
           <div className="relative flex items-center justify-between gap-3 p-3 sm:p-4">
@@ -513,11 +528,12 @@ export function ChatPage() {
           </div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--bg-surface)]/45 shadow-2xl shadow-black/10 backdrop-blur-xl">
-        <div
-          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-4 sm:gap-4 sm:px-5 sm:py-5"
-          ref={listRef}
-        >
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--bg-surface)]/45 shadow-2xl shadow-black/10 backdrop-blur-xl">
+          <div
+            className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-4 sm:gap-4 sm:px-5 sm:py-5 lg:px-6"
+            ref={listRef}
+          >
           {isFetchingNextPage && (
             <div className="text-center py-4 text-[var(--text-muted)]">
               <div className="inline-flex items-center gap-2">
@@ -576,15 +592,15 @@ export function ChatPage() {
           {/* Scroll to bottom button */}
           {showScrollButton && (
             <button
-              className="fixed bottom-[142px] right-4 z-20 grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-[var(--bg-surface)]/90 text-[var(--text-primary)] shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-sky-500/10 sm:bottom-[154px] sm:right-8 sm:h-12 sm:w-12"
+              className="fixed bottom-[142px] right-4 z-20 grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-[var(--bg-surface)]/90 text-[var(--text-primary)] shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-sky-500/10 sm:bottom-[154px] sm:right-8 sm:h-12 sm:w-12 lg:right-[calc(50%_-_18rem)] xl:right-[calc(50%_-_22rem)]"
               onClick={scrollToBottom}
               title="Xuống tin nhắn mới nhất"
             >
               <ChevronDown className="w-5 h-5" />
             </button>
           )}
-        </div>
-        <div className="shrink-0 border-t border-white/10 bg-[var(--bg-surface)]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-5 sm:pb-4 sm:pt-4">
+          </div>
+          <div className="shrink-0 border-t border-white/10 bg-[var(--bg-surface)]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-5 sm:pb-4 sm:pt-4 lg:px-6">
           <div className="mb-3">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
               Thao tác nhanh
@@ -599,7 +615,69 @@ export function ChatPage() {
           </div>
 
           <ChatComposer onSend={handleSend} disabled={sendMessageMutation.isPending} />
-        </div>
+          </div>
+          </div>
+
+          <aside className="hidden min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[var(--bg-surface)]/55 shadow-2xl shadow-black/10 backdrop-blur-xl lg:flex lg:flex-col">
+            <div className="relative overflow-hidden border-b border-white/10 p-5">
+              <div className="absolute inset-0 bg-gradient-to-br from-sky-500/15 via-transparent to-blue-500/10" />
+              <div className="relative">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-300">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Trợ lý tài chính
+                </div>
+                <h2 className="text-xl font-bold leading-tight text-[var(--text-primary)]">
+                  Bắt đầu nhanh với Mimi
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                  Dùng các gợi ý có sẵn hoặc nhập câu hỏi riêng để ghi nhận, kiểm tra ngân sách và xem báo cáo.
+                </p>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="mb-5 rounded-2xl border border-white/10 bg-[var(--bg-primary)]/45 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                    <Target className="h-4 w-4 text-sky-400" />
+                    Gợi ý có thể bấm
+                  </div>
+                  <span className={`h-2.5 w-2.5 rounded-full ${online ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'}`} />
+                </div>
+                <div className="grid gap-2">
+                  {SUGGESTIONS.map((item, index) => (
+                    <button
+                      key={`desktop-${item}`}
+                      type="button"
+                      onClick={() => handleSend(item)}
+                      disabled={sendMessageMutation.isPending}
+                      className="group rounded-2xl border border-sky-500/15 bg-sky-500/10 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/35 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-60 disabled:transform-none"
+                    >
+                      <span className="block text-sm font-semibold text-sky-300 group-hover:text-sky-200">
+                        {QUICK_ACTION_LABELS[index]}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">{item}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {ASSISTANT_GUIDES.map((guide) => (
+                  <div
+                    key={guide.title}
+                    className="rounded-2xl border border-white/10 bg-[var(--bg-primary)]/35 p-4"
+                  >
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                      <ReceiptText className="h-4 w-4 text-sky-400" />
+                      {guide.title}
+                    </div>
+                    <p className="text-xs leading-5 text-[var(--text-muted)]">{guide.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
