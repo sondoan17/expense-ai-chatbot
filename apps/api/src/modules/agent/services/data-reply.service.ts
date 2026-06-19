@@ -12,8 +12,7 @@ export interface DataContext {
       net: number;
     };
     range?: {
-      start: string;
-      end: string;
+      label: string;
     };
     byCategory?: Array<{
       categoryName: string;
@@ -137,7 +136,7 @@ ${dataText}
       }
 
       if (range) {
-        dataText += `\nTHỜI GIAN: ${range.start} đến ${range.end}\n`;
+        dataText += `\nTHỜI GIAN: ${range.label}\n`;
       }
 
       if (byCategory && byCategory.length > 0) {

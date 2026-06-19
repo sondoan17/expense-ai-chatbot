@@ -87,14 +87,21 @@ export class QueryHandlerService {
 
     // Generate AI response with data injection approach
     try {
+      const rangeLabel = describeRange(
+        summary.range?.start,
+        summary.range?.end,
+        timezone,
+        language,
+        payload.period,
+      );
+
       // Format data context for LLM
       const dataContext: DataContext = {
         summary: {
           totals: summary.totals,
           range: summary.range
             ? {
-                start: summary.range.start || '',
-                end: summary.range.end || '',
+                label: rangeLabel,
               }
             : undefined,
           byCategory: summary.byCategory,
