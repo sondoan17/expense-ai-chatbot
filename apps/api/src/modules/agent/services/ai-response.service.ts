@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../../integrations/ai-provider/ai-provider.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PublicUser } from '../../users/types/public-user.type';
 import { AgentLanguage } from '../agent.constants';
@@ -16,7 +16,7 @@ export class AIResponseService {
   private readonly logger = new Logger(AIResponseService.name);
 
   constructor(
-    private readonly hyperbolicService: HyperbolicService,
+    private readonly aiProviderService: AiProviderService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {}
@@ -72,7 +72,7 @@ export class AIResponseService {
       });
 
       // Gọi LLM
-      const response = await this.hyperbolicService.complete(
+      const response = await this.aiProviderService.complete(
         [{ role: 'user', content: fullPrompt }],
         {
           max_tokens: 500,

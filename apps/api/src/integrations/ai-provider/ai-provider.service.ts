@@ -3,49 +3,49 @@ import { ConfigService } from '@nestjs/config';
 
 type ChatRole = 'system' | 'user' | 'assistant';
 
-export interface HyperbolicMessage {
+export interface AiProviderMessage {
   role: ChatRole;
   content: string;
 }
 
-interface HyperbolicResponseFormat {
+interface AiProviderResponseFormat {
   type: 'text' | 'json_object';
   [key: string]: unknown;
 }
 
-interface HyperbolicOptions {
+interface AiProviderOptions {
   model?: string;
   max_tokens?: number;
   temperature?: number;
   top_p?: number;
-  response_format?: HyperbolicResponseFormat;
+  response_format?: AiProviderResponseFormat;
   stream?: boolean;
 }
 
-interface HyperbolicChoice {
+interface AiProviderChoice {
   message?: {
     role: ChatRole;
     content?: string;
   };
 }
 
-interface HyperbolicResponseBody {
-  choices?: HyperbolicChoice[];
+interface AiProviderResponseBody {
+  choices?: AiProviderChoice[];
 }
 
-interface HyperbolicRequestPayload {
+interface AiProviderRequestPayload {
   model: string;
-  messages: HyperbolicMessage[];
+  messages: AiProviderMessage[];
   max_tokens: number;
   temperature: number;
   top_p: number;
   stream: boolean;
-  response_format?: HyperbolicResponseFormat;
+  response_format?: AiProviderResponseFormat;
 }
 
 @Injectable()
-export class HyperbolicService {
-  private readonly logger = new Logger(HyperbolicService.name);
+export class AiProviderService {
+  private readonly logger = new Logger(AiProviderService.name);
   private readonly url: string;
   private readonly apiKey: string;
   private readonly model: string;
@@ -60,13 +60,13 @@ export class HyperbolicService {
     this.model = this.configService.get<string>('AI_MODEL') ?? 'cx/gpt-5.5';
   }
 
-  async complete(messages: HyperbolicMessage[], options?: HyperbolicOptions): Promise<string> {
+  async complete(messages: AiProviderMessage[], options?: AiProviderOptions): Promise<string> {
     if (!this.apiKey) {
       throw new Error('AI provider API key is not configured');
     }
 
     try {
-      const payload: HyperbolicRequestPayload = {
+      const payload: AiProviderRequestPayload = {
         model: options?.model ?? this.model,
         messages,
         max_tokens: options?.max_tokens ?? 50000,
@@ -91,22 +91,22 @@ export class HyperbolicService {
 
       if (!response.ok) {
         await response.body?.cancel();
-        this.logger.error(`Hyperbolic request failed with status ${response.status}`);
-        throw new Error(`Hyperbolic error ${response.status}`);
+        this.logger.error(`AI provider request failed with status ${response.status}`);
+        throw new Error(`AI provider error ${response.status}`);
       }
 
-      const json = (await response.json()) as HyperbolicResponseBody;
+      const json = (await response.json()) as AiProviderResponseBody;
       const content = json.choices?.[0]?.message?.content;
 
       if (!content) {
-        this.logger.error('Hyperbolic response did not include a message content');
-        throw new Error('Invalid Hyperbolic response');
+        this.logger.error('AI provider response did not include a message content');
+        throw new Error('Invalid AI provider response');
       }
 
       return content;
     } catch (error) {
       this.logger.error(
-        'Hyperbolic request failed',
+        'AI provider request failed',
         error instanceof Error ? error.stack : undefined,
       );
       throw error;

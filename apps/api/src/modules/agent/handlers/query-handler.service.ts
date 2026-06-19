@@ -27,7 +27,7 @@ import { PersonalityReplyService } from '../services/personality-reply.service';
 import { DataReplyService, DataContext } from '../services/data-reply.service';
 import { InsightResult } from '../types/internal.types';
 import { PersonalityProfile } from '../types/personality.types';
-import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../../integrations/ai-provider/ai-provider.service';
 
 @Injectable()
 export class QueryHandlerService {
@@ -40,7 +40,7 @@ export class QueryHandlerService {
     private readonly aiResponseService: AIResponseService,
     private readonly personalityReplyService: PersonalityReplyService,
     private readonly dataReplyService: DataReplyService,
-    private readonly hyperbolicService: HyperbolicService,
+    private readonly aiProviderService: AiProviderService,
   ) {}
 
   async handleSummary(

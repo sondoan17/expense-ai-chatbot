@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../../integrations/ai-provider/ai-provider.service';
 import { PersonalityProfile } from '../types/personality.types';
 import { AgentLanguage } from '../agent.constants';
 
@@ -12,7 +12,7 @@ import { AgentLanguage } from '../agent.constants';
 export class PersonalityReplyService {
   private readonly logger = new Logger(PersonalityReplyService.name);
 
-  constructor(private readonly hyperbolicService: HyperbolicService) {}
+  constructor(private readonly aiProviderService: AiProviderService) {}
 
   /**
    * @deprecated No longer used - replaced by DataReplyService for query intents
@@ -27,7 +27,7 @@ export class PersonalityReplyService {
     const prompt = this.buildRewritePrompt(originalReply, personality, language, context);
 
     try {
-      const rewritten = await this.hyperbolicService.complete(
+      const rewritten = await this.aiProviderService.complete(
         [
           { role: 'system', content: prompt },
           { role: 'user', content: originalReply },

@@ -16,7 +16,7 @@ apps/api/src/
 │   ├── decorators/         # Custom decorators (@CurrentUser, etc.)
 │   └── guards/             # JWT guard, auth guards
 ├── integrations/           # External service clients
-│   ├── hyperbolic/         # LLM API client
+│   ├── ai-provider/        # AI provider API client
 │   └── cloudinary/         # Image upload service
 ├── prisma/                 # Prisma service wrapper
 └── modules/                # Feature modules
@@ -140,9 +140,9 @@ JWT_SECRET=your_secret
 JWT_EXPIRES_IN=7d
 PORT=4000
 APP_TIMEZONE=Asia/Ho_Chi_Minh
-HYPERBOLIC_API_URL=https://api.hyperbolic.xyz/v1/chat/completions
-HYPERBOLIC_API_KEY=sk_xxx
-HYPERBOLIC_MODEL=Qwen/Qwen3-Next-80B-A3B-Thinking
+PROVIDER_URL=https://ai.mimichatbot.fun/v1
+PROVIDER_API_KEY=sk_xxx
+AI_MODEL=cx/gpt-5.5
 ```
 
 ## Common Patterns

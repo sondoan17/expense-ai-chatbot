@@ -3,9 +3,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentPayload, normalizeText } from '@expense-ai/shared';
 import {
-  HyperbolicService,
-  HyperbolicMessage,
-} from '../../integrations/hyperbolic/hyperbolic.service';
+  AiProviderService,
+  AiProviderMessage,
+} from '../../integrations/ai-provider/ai-provider.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicUser } from '../users/types/public-user.type';
 import { AgentActionDto } from './dto/agent-action.dto';
@@ -65,7 +65,7 @@ export class AgentService {
   private readonly logger = new Logger(AgentService.name);
 
   constructor(
-    private readonly hyperbolicService: HyperbolicService,
+    private readonly aiProviderService: AiProviderService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly budgetHandler: BudgetHandlerService,
@@ -104,7 +104,7 @@ export class AgentService {
 
     // Step 1: Classification only (for all intents)
     const classificationPrompt = buildClassificationOnlyPrompt(now.toISOString(), timezone);
-    const classificationMessages: HyperbolicMessage[] = [
+    const classificationMessages: AiProviderMessage[] = [
       { role: 'system', content: classificationPrompt },
       { role: 'user', content: trimmed },
     ];
@@ -112,7 +112,7 @@ export class AgentService {
     let payload: AgentPayload | undefined;
 
     try {
-      const raw = await this.hyperbolicService.complete(classificationMessages, {
+      const raw = await this.aiProviderService.complete(classificationMessages, {
         max_tokens: 350,
         temperature: 0.1, // Low temperature for accurate classification
         top_p: 0.8,
@@ -430,13 +430,13 @@ export class AgentService {
       timezone,
     );
 
-    const chatMessages: HyperbolicMessage[] = [
+    const chatMessages: AiProviderMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: originalMessage },
     ];
 
     try {
-      const raw = await this.hyperbolicService.complete(chatMessages, {
+      const raw = await this.aiProviderService.complete(chatMessages, {
         max_tokens: 450,
         temperature: 0.3,
         top_p: 0.8,

@@ -32,7 +32,7 @@ import { AIResponseService } from '../services/ai-response.service';
 import { PersonalityReplyService } from '../services/personality-reply.service';
 import { DataReplyService, DataContext } from '../services/data-reply.service';
 import { PersonalityProfile } from '../types/personality.types';
-import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../../integrations/ai-provider/ai-provider.service';
 
 // Helper function to wrap action payloads with intent
 function wrapActionPayload(
@@ -82,7 +82,7 @@ export class BudgetHandlerService {
     private readonly aiResponseService: AIResponseService,
     private readonly personalityReplyService: PersonalityReplyService,
     private readonly dataReplyService: DataReplyService,
-    private readonly hyperbolicService: HyperbolicService,
+    private readonly aiProviderService: AiProviderService,
   ) {}
 
   async handleSetBudget(

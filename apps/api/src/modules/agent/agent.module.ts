@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AgentController } from './agent.controller';
 import { AgentService } from './agent.service';
-import { HyperbolicService } from '../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../integrations/ai-provider/ai-provider.service';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { BudgetsModule } from '../budgets/budgets.module';
 import { ReportsModule } from '../reports/reports.module';
@@ -36,7 +36,7 @@ import { DataReplyService } from './services/data-reply.service';
   controllers: [AgentController],
   providers: [
     AgentService,
-    HyperbolicService,
+    AiProviderService,
     BudgetHandlerService,
     TransactionHandlerService,
     RecurringHandlerService,

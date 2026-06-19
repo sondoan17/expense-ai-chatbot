@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HyperbolicService } from '../../../integrations/hyperbolic/hyperbolic.service';
+import { AiProviderService } from '../../../integrations/ai-provider/ai-provider.service';
 import { PersonalityProfile } from '../types/personality.types';
 import { AgentLanguage } from '../agent.constants';
 import { AgentPayload } from '@expense-ai/shared';
@@ -45,7 +45,7 @@ export interface DataContext {
 export class DataReplyService {
   private readonly logger = new Logger(DataReplyService.name);
 
-  constructor(private readonly hyperbolicService: HyperbolicService) {}
+  constructor(private readonly aiProviderService: AiProviderService) {}
 
   async generateReplyWithData(
     payload: AgentPayload,
@@ -56,7 +56,7 @@ export class DataReplyService {
     const prompt = this.buildDataReplyPrompt(payload, dataContext, personality, language);
 
     try {
-      const response = await this.hyperbolicService.complete([{ role: 'user', content: prompt }], {
+      const response = await this.aiProviderService.complete([{ role: 'user', content: prompt }], {
         max_tokens: 400,
         temperature: 0.3, // Low temperature for accuracy
         response_format: { type: 'text' },

@@ -204,9 +204,9 @@ PORT=4000
 APP_TIMEZONE=Asia/Ho_Chi_Minh
 
 # AI Service
-HYPERBOLIC_API_URL=https://api.hyperbolic.xyz/v1/chat/completions
-HYPERBOLIC_API_KEY=your_api_key
-HYPERBOLIC_MODEL=Qwen/Qwen3-Next-80B-A3B-Thinking
+PROVIDER_URL=https://ai.mimichatbot.fun/v1
+PROVIDER_API_KEY=your_api_key
+AI_MODEL=cx/gpt-5.5
 
 # Frontend
 VITE_API_BASE_URL=https://mimichatbot.fun/api

@@ -1,10 +1,10 @@
-﻿# Mimi
+# Mimi
 
 Mimi is a production-style side project that combines a chat-first experience with a full NestJS backend. Users can capture expenses, incomes, budgets, and recurring rules in natural Vietnamese or English, while still getting traditional dashboards and reports.
 
 ## Highlights
 
-- Chat-driven capture powered by the Hyperbolic LLM with intent parsing, validation, and deterministic replies.
+- Chat-driven capture powered by the AI provider with intent parsing, validation, and deterministic replies.
 - React + Vite progressive web app with offline queueing, chat history, dashboards, and TanStack Query data layer.
 - NestJS API covering auth, transactions, budgets, reports, recurring automation, and chat agent orchestration.
 - Prisma + PostgreSQL schema with categories, chat transcripts, and recurring rule execution logs.
@@ -30,9 +30,9 @@ Mimi is a production-style side project that combines a chat-first experience wi
 - Transactions: CRUD endpoints, filtered lists, summaries, deletion, Luxon-based date range helpers, metadata storage.
 - Budgets: upsert, list, delete, and live status (spent vs remaining vs overspent) by month and optional category.
 - Reports: consolidated overview endpoint with totals, category breakdown, and recent transactions for the dashboard.
-- Agent: `/agent/chat` and `/agent/history`, Hyperbolic classification prompt, chat persistence, confidence gating, multilingual replies, and support for add_expense, add_income, query_total, query_by_category, set_budget, get_budget_status, list_recent, set_recurring, undo_or_delete (placeholder), small_talk.
+- Agent: `/agent/chat` and `/agent/history`, AI provider classification prompt, chat persistence, confidence gating, multilingual replies, and support for add_expense, add_income, query_total, query_by_category, set_budget, get_budget_status, list_recent, set_recurring, undo_or_delete (placeholder), small_talk.
 - Recurring automation: natural language scheduling (`set_recurring`) mapped to `RecurringRule`, intelligent update detection, `RecurringService.processDueRules` for cron workers, and execution logging.
-- Integrations: Hyperbolic client with `response_format: json_object`, request preview logging, Prisma service bootstrap, configuration via `APP_TIMEZONE`, `HYPERBOLIC_*`, and JWT env vars.
+- Integrations: AI provider client with `response_format: json_object`, request preview logging, Prisma service bootstrap, configuration via `APP_TIMEZONE`, `PROVIDER_*`, `AI_MODEL`, and JWT env vars.
 - Persistence: chat transcripts stored in `ChatMessage`, transactions and budgets indexed for fast range queries, recurring run logs for auditing.
 
 ## Frontend (React + Vite PWA)
@@ -61,16 +61,16 @@ Mimi is a production-style side project that combines a chat-first experience wi
 ## Environment setup
 
 1. Copy `.env.example` to `.env` at the project root.
-2. Provide PostgreSQL credentials and Hyperbolic API key.
+2. Provide PostgreSQL credentials and AI provider API key.
 3. Optional: set `APP_TIMEZONE` (defaults to `Asia/Ho_Chi_Minh`) and `WEB_ORIGIN` for CORS.
 
 Backend essentials:
 
 ```
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/expense?schema=public
-HYPERBOLIC_API_URL=https://api.hyperbolic.xyz/v1/chat/completions
-HYPERBOLIC_API_KEY=sk_xxx
-HYPERBOLIC_MODEL=Qwen/Qwen3-Next-80B-A3B-Thinking
+PROVIDER_URL=https://ai.mimichatbot.fun/v1
+PROVIDER_API_KEY=sk_xxx
+AI_MODEL=cx/gpt-5.5
 JWT_SECRET=replace_me
 JWT_EXPIRES_IN=7d
 APP_TIMEZONE=Asia/Ho_Chi_Minh
