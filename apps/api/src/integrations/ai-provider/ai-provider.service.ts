@@ -23,7 +23,14 @@ interface AiProviderOptions {
   stream?: boolean;
 }
 
+interface AiProviderThinkingOptions {
+  type: 'disabled';
+}
+
 interface AiProviderChoice {
+  delta?: {
+    content?: string;
+  };
   message?: {
     role: ChatRole;
     content?: string;
@@ -42,6 +49,7 @@ interface AiProviderRequestPayload {
   top_p: number;
   stream: boolean;
   response_format?: AiProviderResponseFormat;
+  thinking: AiProviderThinkingOptions;
 }
 
 @Injectable()
@@ -75,8 +83,9 @@ export class AiProviderService {
         max_tokens: options?.max_tokens ?? 50000,
         temperature: options?.temperature ?? 0.7,
         top_p: options?.top_p ?? 0.8,
-        stream: options?.stream ?? false,
+        stream: options?.stream ?? true,
         response_format: options?.response_format ?? { type: 'json_object' },
+        thinking: { type: 'disabled' },
       };
 
       if (options?.response_format) {
@@ -98,8 +107,9 @@ export class AiProviderService {
         throw new Error(`AI provider error ${response.status}`);
       }
 
-      const json = (await response.json()) as AiProviderResponseBody;
-      const content = json.choices?.[0]?.message?.content;
+      const content = payload.stream
+        ? await this.readStreamingContent(response)
+        : await this.readJsonContent(response);
 
       if (!content) {
         this.logger.error('AI provider response did not include a message content');
@@ -113,6 +123,62 @@ export class AiProviderService {
         error instanceof Error ? error.stack : undefined,
       );
       throw error;
+    }
+  }
+
+  private async readJsonContent(response: Response): Promise<string | undefined> {
+    const json = (await response.json()) as AiProviderResponseBody;
+    return json.choices?.[0]?.message?.content;
+  }
+
+  private async readStreamingContent(response: Response): Promise<string> {
+    if (!response.body) {
+      return '';
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let content = '';
+
+    let readResult = await reader.read();
+    while (!readResult.done) {
+      buffer += decoder.decode(readResult.value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        content += this.readStreamingLineContent(line);
+      }
+
+      readResult = await reader.read();
+    }
+
+    buffer += decoder.decode();
+    if (buffer) {
+      content += this.readStreamingLineContent(buffer);
+    }
+
+    return content;
+  }
+
+  private readStreamingLineContent(line: string): string {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith('data:')) {
+      return '';
+    }
+
+    const data = trimmed.slice('data:'.length).trim();
+    if (!data || data === '[DONE]') {
+      return '';
+    }
+
+    try {
+      const json = JSON.parse(data) as AiProviderResponseBody;
+      const choice = json.choices?.[0];
+      return choice?.delta?.content ?? choice?.message?.content ?? '';
+    } catch {
+      return '';
     }
   }
 }
