@@ -83,5 +83,5 @@ USER nestjs
 
 EXPOSE 4000
 
-# Start API
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy --schema=./prisma/schema.prisma && node dist/apps/api/src/main.js"]
+# Start API without invoking Corepack/pnpm at runtime.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/apps/api/src/main.js"]

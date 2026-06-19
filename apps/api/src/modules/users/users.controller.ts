@@ -10,6 +10,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PublicUser } from './types/public-user.type';
@@ -21,7 +22,6 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePersonalityDto } from './dto/update-personality.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
-import { AuthService } from '../auth/auth.service';
 
 @Controller('users')
 export class UsersController {
@@ -31,7 +31,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly userSettingsService: UserSettingsService,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -78,8 +78,22 @@ export class UsersController {
       changePasswordDto.currentPassword,
       changePasswordDto.newPassword,
     );
-    this.authService.clearAuthCookie(res);
+    this.clearAuthCookie(res);
     return result;
+  }
+
+  private clearAuthCookie(res: Response): void {
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      ...(isProduction && {
+        domain: this.configService.get<string>('COOKIE_DOMAIN'),
+      }),
+    });
   }
 
   @UseGuards(JwtAuthGuard)
