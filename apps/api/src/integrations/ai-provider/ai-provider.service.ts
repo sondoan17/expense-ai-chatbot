@@ -83,7 +83,7 @@ export class AiProviderService {
         max_tokens: options?.max_tokens ?? 50000,
         temperature: options?.temperature ?? 0.7,
         top_p: options?.top_p ?? 0.8,
-        stream: options?.stream ?? true,
+        stream: options?.stream ?? false,
         response_format: options?.response_format ?? { type: 'json_object' },
         thinking: { type: 'disabled' },
       };
