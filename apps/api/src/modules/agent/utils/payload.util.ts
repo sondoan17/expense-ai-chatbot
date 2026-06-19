@@ -3,9 +3,7 @@ import { AgentPayload, AgentPayloadSchema } from '@expense-ai/shared';
 import { DateTime } from 'luxon';
 
 export function logRawCompletion(logger: Logger, raw: string): void {
-  const cleaned = raw.replace(/\s+/g, ' ').trim();
-  const preview = cleaned.length > 1000 ? `${cleaned.slice(0, 1000)}...` : cleaned;
-  logger.debug(`Hyperbolic raw response preview: ${preview}`);
+  logger.debug(`Hyperbolic response received (${raw.length} chars)`);
 }
 
 export function parseAgentPayload(logger: Logger, raw: string): AgentPayload {

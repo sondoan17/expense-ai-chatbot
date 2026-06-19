@@ -89,8 +89,8 @@ export class HyperbolicService {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        this.logger.error(`Hyperbolic request failed ${response.status}: ${text}`);
+        await response.body?.cancel();
+        this.logger.error(`Hyperbolic request failed with status ${response.status}`);
         throw new Error(`Hyperbolic error ${response.status}`);
       }
 

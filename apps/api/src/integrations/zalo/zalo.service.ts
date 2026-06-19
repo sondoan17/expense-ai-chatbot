@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ZALO_API_BASE, ZALO_MAX_MESSAGE_LENGTH } from './zalo.constants';
 import { ZaloSendMessageResponse, ZaloSetWebhookResponse, ZaloGetMeResponse } from './zalo.types';
+import { getRequiredEnv, isTruthyEnv } from '../../common/config/required-env';
 
 @Injectable()
 export class ZaloService {
@@ -10,11 +11,15 @@ export class ZaloService {
   private readonly apiBase = ZALO_API_BASE;
 
   constructor(private readonly configService: ConfigService) {
-    this.botToken = this.configService.get<string>('ZALO_BOT_TOKEN') ?? '';
+    const configuredToken = this.configService.get<string>('ZALO_BOT_TOKEN')?.trim() ?? '';
+    const explicitlyEnabled = isTruthyEnv(this.configService.get<string>('ZALO_ENABLED'));
 
-    if (!this.botToken) {
-      this.logger.warn('ZALO_BOT_TOKEN is not configured');
+    if (explicitlyEnabled) {
+      this.botToken = getRequiredEnv(this.configService, 'ZALO_BOT_TOKEN', { minLength: 8 });
+      return;
     }
+
+    this.botToken = configuredToken;
   }
 
   /**

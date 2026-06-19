@@ -15,6 +15,7 @@ import { AgentService } from '../../modules/agent/agent.service';
 import { ZaloWebhookPayload } from './zalo.types';
 import { ZALO_SECRET_HEADER, ZALO_COMMANDS, ZALO_MESSAGES } from './zalo.constants';
 import { PublicUser } from '../../modules/users/types/public-user.type';
+import { getRequiredEnv, isTruthyEnv } from '../../common/config/required-env';
 
 @Controller('zalo')
 export class ZaloWebhookController {
@@ -27,11 +28,18 @@ export class ZaloWebhookController {
     private readonly zaloLinkService: ZaloLinkService,
     private readonly agentService: AgentService,
   ) {
-    this.webhookSecret = this.configService.get<string>('ZALO_WEBHOOK_SECRET') ?? '';
+    const configuredSecret = this.configService.get<string>('ZALO_WEBHOOK_SECRET')?.trim() ?? '';
+    const explicitlyEnabled = isTruthyEnv(this.configService.get<string>('ZALO_ENABLED'));
+    const botToken = this.configService.get<string>('ZALO_BOT_TOKEN')?.trim();
 
-    if (!this.webhookSecret) {
-      this.logger.warn('ZALO_WEBHOOK_SECRET is not configured');
+    if (explicitlyEnabled || botToken) {
+      this.webhookSecret = getRequiredEnv(this.configService, 'ZALO_WEBHOOK_SECRET', {
+        minLength: 8,
+      });
+      return;
     }
+
+    this.webhookSecret = configuredSecret;
   }
 
   @Post('webhook')
@@ -41,13 +49,13 @@ export class ZaloWebhookController {
     @Body() body: ZaloWebhookPayload,
   ) {
     // 1. Verify secret token
-    if (this.webhookSecret && secretToken !== this.webhookSecret) {
+    if (!this.webhookSecret || secretToken !== this.webhookSecret) {
       this.logger.warn('Invalid secret token received');
       throw new UnauthorizedException('Invalid secret token');
     }
 
     // 2. Validate payload
-    this.logger.debug(`Webhook payload received: ${JSON.stringify(body)}`);
+    this.logger.debug(`Webhook event received: ${body.event_name ?? 'unknown'}`);
 
     if (!body?.event_name) {
       this.logger.warn(`Invalid webhook payload: missing event_name`);
@@ -75,7 +83,7 @@ export class ZaloWebhookController {
     const text = message.text?.trim() ?? '';
     const displayName = message.from.display_name;
 
-    this.logger.log(`Received message from ${displayName} (${zaloUserId}): "${text}"`);
+    this.logger.log(`Received Zalo text message from ${zaloUserId} (${text.length} chars)`);
 
     try {
       // 5. Handle special commands first
@@ -115,7 +123,7 @@ export class ZaloWebhookController {
       // 9. Send reply
       await this.zaloService.sendMessage(chatId, result.reply);
 
-      this.logger.log(`Replied to ${displayName}: "${result.reply.slice(0, 100)}..."`);
+      this.logger.log(`Replied to Zalo user ${zaloUserId} (${result.reply.length} chars)`);
 
       return { ok: true };
     } catch (error) {

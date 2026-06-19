@@ -1,5 +1,5 @@
 ﻿import { DateTime } from 'luxon';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, Currency, TxnType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -24,6 +24,10 @@ export class TransactionsService {
   async create(userId: string, dto: CreateTransactionDto) {
     const timezone = this.getTimezone();
     const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : this.now(timezone);
+
+    if (dto.categoryId) {
+      await this.ensureCategoryExists(dto.categoryId);
+    }
 
     const transaction = await this.prisma.transaction.create({
       data: {
@@ -275,5 +279,16 @@ export class TransactionsService {
 
   private now(timezone: string): Date {
     return DateTime.now().setZone(timezone).toJSDate();
+  }
+
+  private async ensureCategoryExists(categoryId: string): Promise<void> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Category not found');
+    }
   }
 }

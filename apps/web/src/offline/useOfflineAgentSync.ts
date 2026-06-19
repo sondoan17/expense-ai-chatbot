@@ -1,5 +1,5 @@
 ﻿import { useEffect } from 'react';
-import { dequeueAgentMessages, peekAgentMessages } from './offlineQueue';
+import { peekAgentMessages, removeAgentMessage } from './offlineQueue';
 import { apiClient, extractErrorMessage } from '../api/client';
 import { AgentChatResponse } from '../api/types';
 
@@ -15,12 +15,13 @@ export function useOfflineAgentSync(onSynced: SyncCallback) {
       const queue = await peekAgentMessages();
       if (!queue.length || navigator.onLine === false) return;
 
-      const pending = await dequeueAgentMessages();
+      const pending = [...queue];
       for (const item of pending) {
         try {
           const { data } = await apiClient.post<AgentChatResponse>('/agent/chat', {
             message: item.message,
           });
+          await removeAgentMessage(item.id);
           onSynced({ messageId: item.id, response: data });
         } catch (error) {
           onSynced({

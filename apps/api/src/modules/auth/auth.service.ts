@@ -80,29 +80,27 @@ export class AuthService {
       return { message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu' };
     }
 
-    // Tạo token reset password
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = this.hashResetToken(resetToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 giờ
 
-    // Lưu token vào database
     await this.prisma.passwordResetToken.create({
       data: {
         userId: user.id,
-        token: resetToken,
+        token: resetTokenHash,
         expiresAt,
       },
     });
 
-    // Gửi email
     await this.emailService.sendPasswordResetEmail(user.email, resetToken);
 
     return { message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu' };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    // Tìm token reset password
+    const resetTokenHash = this.hashResetToken(dto.token);
     const resetToken = await this.prisma.passwordResetToken.findUnique({
-      where: { token: dto.token },
+      where: { token: resetTokenHash },
       include: { user: true },
     });
 
@@ -118,17 +116,15 @@ export class AuthService {
       throw new BadRequestException('Token đặt lại mật khẩu đã hết hạn');
     }
 
-    // Hash mật khẩu mới
     const passwordHash = await bcrypt.hash(dto.newPassword, this.saltRounds);
 
-    // Cập nhật mật khẩu và đánh dấu token đã sử dụng
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: resetToken.userId },
         data: { passwordHash },
       }),
-      this.prisma.passwordResetToken.update({
-        where: { id: resetToken.id },
+      this.prisma.passwordResetToken.updateMany({
+        where: { userId: resetToken.userId, used: false },
         data: { used: true },
       }),
     ]);
@@ -193,5 +189,9 @@ export class AuthService {
       default:
         return 7 * 24 * 60 * 60 * 1000; // default 7 days
     }
+  }
+
+  private hashResetToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 }

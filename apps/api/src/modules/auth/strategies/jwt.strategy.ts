@@ -5,6 +5,7 @@ import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { UsersService } from '../../users/users.service';
 import { PublicUser } from '../../users/types/public-user.type';
+import { getRequiredEnv } from '../../../common/config/required-env';
 
 interface JwtPayload {
   sub: string;
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return req.cookies?.access_token || null;
       },
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') ?? 'change_me',
+      secretOrKey: getRequiredEnv(configService, 'JWT_SECRET', { minLength: 32 }),
     });
   }
 

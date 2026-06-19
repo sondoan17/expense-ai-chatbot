@@ -73,11 +73,16 @@ export class UsersService {
     // Hash mật khẩu mới
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
-    // Cập nhật mật khẩu
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: newPasswordHash },
-    });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newPasswordHash },
+      }),
+      this.prisma.passwordResetToken.updateMany({
+        where: { userId, used: false },
+        data: { used: true },
+      }),
+    ]);
 
     return { message: 'Mật khẩu đã được thay đổi thành công' };
   }

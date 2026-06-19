@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Currency, Prisma, TxnType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -21,6 +21,10 @@ export class BudgetsService {
   async upsert(userId: string, dto: UpsertBudgetDto) {
     const limitAmount = new Prisma.Decimal(dto.limitAmount);
     const currency = dto.currency ?? Currency.VND;
+
+    if (dto.categoryId) {
+      await this.ensureCategoryExists(dto.categoryId);
+    }
 
     const existing = await this.prisma.budget.findFirst({
       where: {
@@ -166,5 +170,16 @@ export class BudgetsService {
       start: start.toJSDate(),
       end: end.toJSDate(),
     };
+  }
+
+  private async ensureCategoryExists(categoryId: string): Promise<void> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Category not found');
+    }
   }
 }

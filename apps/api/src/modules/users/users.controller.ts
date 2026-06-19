@@ -17,6 +17,7 @@ import { CloudinaryService } from '../../integrations/cloudinary/cloudinary.serv
 import { ResetAccountDto } from './dto/reset-account.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePersonalityDto } from './dto/update-personality.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Controller('users')
@@ -39,7 +40,7 @@ export class UsersController {
   @Patch('me')
   async updateMe(
     @CurrentUser() user: PublicUser,
-    @Body() updateData: { name?: string; avatar?: string },
+    @Body() updateData: UpdateUserDto,
   ) {
     const updatedUser = await this.usersService.update(user.id, updateData);
     return { user: this.usersService.toPublicUser(updatedUser) };

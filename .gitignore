@@ -102,3 +102,4 @@ tmp/
 # # ---- AI Agent ----
 .agent/
 .shared/
+.omo

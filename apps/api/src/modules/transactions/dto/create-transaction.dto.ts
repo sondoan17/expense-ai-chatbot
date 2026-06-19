@@ -7,6 +7,7 @@ import {
   IsPositive,
   IsString,
   IsISO8601,
+  IsObject,
   MaxLength,
 } from 'class-validator';
 
@@ -38,5 +39,6 @@ export class CreateTransactionDto {
   categoryId?: string;
 
   @IsOptional()
+  @IsObject()
   meta?: Record<string, unknown>;
 }

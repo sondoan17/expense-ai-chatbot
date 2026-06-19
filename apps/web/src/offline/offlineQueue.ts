@@ -25,6 +25,14 @@ export async function dequeueAgentMessages(): Promise<AgentQueueItem[]> {
   return queue;
 }
 
+export async function removeAgentMessage(id: string): Promise<void> {
+  const queue = await getQueue();
+  await store.setItem(
+    QUEUE_KEY,
+    queue.filter((item) => item.id !== id),
+  );
+}
+
 export async function peekAgentMessages(): Promise<AgentQueueItem[]> {
   return getQueue();
 }

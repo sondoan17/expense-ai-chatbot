@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { getRequiredEnv } from '../../common/config/required-env';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { LocalStrategy } from './strategies/local.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') ?? 'change_me',
+        secret: getRequiredEnv(configService, 'JWT_SECRET', { minLength: 32 }),
         signOptions: {
           expiresIn: configService.get('JWT_EXPIRES_IN') ?? '7d',
         } as JwtSignOptions,
@@ -32,4 +33,4 @@ import { LocalStrategy } from './strategies/local.strategy';
   providers: [AuthService, LocalStrategy, JwtStrategy],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}
