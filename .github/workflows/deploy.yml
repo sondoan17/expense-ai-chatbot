@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - '*.md'
       - '.gitignore'
+      - 'apps/zalo-miniapp/**'
   workflow_dispatch:
 
 jobs:

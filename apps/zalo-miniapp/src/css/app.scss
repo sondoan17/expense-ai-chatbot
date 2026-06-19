@@ -1,0 +1,53 @@
+:root {
+  --mimi-bg: #07111f;
+  --mimi-surface: rgba(15, 23, 42, 0.78);
+  --mimi-surface-strong: rgba(30, 41, 59, 0.9);
+  --mimi-border: rgba(148, 163, 184, 0.18);
+  --mimi-text: #f8fafc;
+  --mimi-muted: #94a3b8;
+  --mimi-accent: #38bdf8;
+  --mimi-cyan: #22d3ee;
+  --mimi-success: #34d399;
+  --mimi-danger: #fb7185;
+  --mimi-warning: #fbbf24;
+  --mimi-radius: 24px;
+  --mimi-gap: 16px;
+  color: var(--mimi-text);
+}
+
+body { background: radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.2), transparent 36%), var(--mimi-bg); color: var(--mimi-text); }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+input, select { width: 100%; border: 1px solid var(--mimi-border); border-radius: 16px; background: rgba(2, 6, 23, 0.52); color: var(--mimi-text); padding: 12px 14px; }
+input:focus, select:focus { outline: none; border-color: rgba(56, 189, 248, 0.7); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16); }
+
+.mimi-page, .mimi-screen { min-height: 100vh; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 96px); background: radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 45%); }
+.mimi-center { display: grid; place-items: center; }
+.mimi-card { border: 1px solid var(--mimi-border); border-radius: var(--mimi-radius); background: var(--mimi-surface); box-shadow: 0 28px 80px rgba(2, 6, 23, 0.34); backdrop-filter: blur(20px); padding: var(--mimi-gap); }
+.mimi-hero, .mimi-auth { display: grid; place-items: center; }
+.mimi-hero-card, .mimi-auth-card { position: relative; overflow: hidden; width: 100%; max-width: 430px; padding: 28px; }
+.mimi-orb { position: absolute; width: 180px; height: 180px; right: -70px; top: -60px; border-radius: 999px; background: linear-gradient(135deg, var(--mimi-accent), #2563eb); filter: blur(8px); opacity: 0.35; }
+.mimi-kicker { display: block; color: var(--mimi-accent); font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.mimi-hero h1, .mimi-auth h1, .mimi-dashboard-head h1 { margin: 8px 0; font-size: 30px; line-height: 1.05; letter-spacing: -0.04em; }
+.mimi-hero p, .mimi-auth p, .mimi-card p { color: var(--mimi-muted); line-height: 1.55; }
+.mimi-actions { display: flex; gap: 12px; margin-top: 24px; }
+.mimi-button { border: 0; border-radius: 16px; padding: 12px 16px; font-weight: 800; color: var(--mimi-text); }
+.mimi-button.primary { background: linear-gradient(135deg, var(--mimi-accent), #2563eb); box-shadow: 0 14px 30px rgba(56, 189, 248, 0.24); }
+.mimi-button.ghost { background: rgba(148, 163, 184, 0.12); border: 1px solid var(--mimi-border); }
+.mimi-button.danger { background: rgba(251, 113, 133, 0.18); color: #fecdd3; border: 1px solid rgba(251, 113, 133, 0.34); }
+.mimi-link-button { width: 100%; margin-top: 16px; border: 0; background: transparent; color: var(--mimi-accent); font-weight: 700; }
+.mimi-form { display: flex; flex-direction: column; gap: 14px; }
+.mimi-form label { display: flex; flex-direction: column; gap: 7px; color: #cbd5e1; font-size: 13px; font-weight: 700; }
+.mimi-error { border: 1px solid rgba(251, 113, 133, 0.32); border-radius: 14px; background: rgba(251, 113, 133, 0.12); color: #fecdd3; padding: 10px 12px; font-size: 13px; }
+.mimi-strength { display: flex; gap: 5px; }.mimi-strength span { height: 5px; flex: 1; border-radius: 999px; background: rgba(148, 163, 184, 0.22); }.mimi-strength .on { background: var(--mimi-success); }
+.mimi-app-shell { min-height: 100vh; background: var(--mimi-bg); }
+.mimi-topbar { position: fixed; inset: 0 0 auto 0; z-index: 20; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 10px) 14px 10px; background: rgba(7, 17, 31, 0.78); border-bottom: 1px solid var(--mimi-border); backdrop-filter: blur(18px); }
+.mimi-brand { display: flex; align-items: center; gap: 8px; margin-right: auto; border: 0; background: transparent; color: var(--mimi-text); font-size: 18px; font-weight: 900; }.mimi-logo, .mimi-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 14px; background: linear-gradient(135deg, var(--mimi-accent), #2563eb); font-weight: 900; }.mimi-avatar { border: 0; color: white; overflow: hidden; }.mimi-avatar img { width: 100%; height: 100%; object-fit: cover; }.mimi-logout { border: 1px solid rgba(251, 113, 133, 0.24); background: rgba(251, 113, 133, 0.12); color: #fecdd3; border-radius: 14px; width: 36px; height: 36px; }
+.mimi-content { min-height: 100vh; padding-top: 56px; }
+.mimi-bottom-nav { position: fixed; inset: auto 12px calc(env(safe-area-inset-bottom) + 10px); z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 8px; border: 1px solid var(--mimi-border); border-radius: 24px; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(20px); }.mimi-nav-item { border: 0; border-radius: 16px; background: transparent; color: var(--mimi-muted); padding: 7px 2px; }.mimi-nav-item span { display: block; font-size: 17px; }.mimi-nav-item small { display: block; font-size: 10px; }.mimi-nav-item.active { background: rgba(56, 189, 248, 0.16); color: var(--mimi-accent); }
+.mimi-section-title { margin-bottom: 14px; }.mimi-section-title strong { display: block; font-size: 24px; letter-spacing: -0.03em; }.mimi-section-title span { color: var(--mimi-accent); text-transform: uppercase; font-size: 12px; font-weight: 900; letter-spacing: 0.12em; }
+.mimi-suggestions, .mimi-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; }.mimi-suggestions button, .mimi-tabs button { flex: none; border: 1px solid var(--mimi-border); border-radius: 999px; background: rgba(148, 163, 184, 0.1); color: var(--mimi-text); padding: 9px 12px; font-weight: 700; }.mimi-tabs .active { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.16); color: var(--mimi-accent); }
+.mimi-chat-list { display: flex; flex-direction: column; gap: 12px; min-height: calc(100vh - 250px); padding-bottom: 96px; }.mimi-bubble { max-width: 88%; border: 1px solid var(--mimi-border); border-radius: 22px; padding: 12px 14px; background: var(--mimi-surface); }.mimi-bubble.user { align-self: flex-end; background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(37, 99, 235, 0.3)); }.mimi-bubble.assistant { align-self: flex-start; }.mimi-bubble p { margin: 0; white-space: pre-wrap; }.mimi-bubble small, .mimi-muted { color: var(--mimi-muted); font-size: 11px; }.mimi-action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }.mimi-action-row button { border: 1px solid rgba(56, 189, 248, 0.34); border-radius: 999px; background: rgba(56, 189, 248, 0.12); color: var(--mimi-accent); padding: 7px 10px; }
+.mimi-composer { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 82px); display: flex; gap: 8px; padding: 8px; border: 1px solid var(--mimi-border); border-radius: 22px; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); }.mimi-composer input { flex: 1; }.mimi-composer .mimi-button { width: auto; }
+.mimi-dashboard-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }.mimi-dashboard-head select { width: 96px; }.mimi-grid, .mimi-list { display: grid; gap: 12px; }.mimi-stat { border: 1px solid var(--mimi-border); border-radius: 22px; background: var(--mimi-surface); padding: 16px; }.mimi-stat span { color: var(--mimi-muted); }.mimi-stat strong { display: block; margin-top: 6px; font-size: 22px; }.mimi-stat.accent strong, .income { color: var(--mimi-success); }.expense { color: var(--mimi-danger); }.mimi-bars { display: grid; gap: 14px; }.mimi-bars div div, .mimi-row-card { display: flex; justify-content: space-between; gap: 12px; }.mimi-bars i, .mimi-progress i { display: block; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--mimi-accent), var(--mimi-cyan)); }.mimi-progress { height: 8px; border-radius: 999px; background: rgba(148, 163, 184, 0.16); overflow: hidden; }.mimi-row-card { align-items: center; border: 1px solid var(--mimi-border); border-radius: 20px; background: var(--mimi-surface); padding: 13px; }.mimi-row-card b, .mimi-row-card small { display: block; }
+.mimi-profile-avatar { display: grid; place-items: center; width: 92px; height: 92px; margin: 0 auto; border-radius: 32px; background: linear-gradient(135deg, var(--mimi-accent), #2563eb); font-size: 34px; font-weight: 900; overflow: hidden; }.mimi-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }.danger { border-color: rgba(251, 113, 133, 0.28); }
