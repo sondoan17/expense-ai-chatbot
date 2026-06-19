@@ -1,7 +1,14 @@
 ﻿import { useEffect } from 'react';
-import { peekAgentMessages, removeAgentMessage } from './offlineQueue';
-import { apiClient, extractErrorMessage } from '../api/client';
+import {
+  deadLetterAgentMessage,
+  incrementAgentMessageAttempts,
+  peekAgentMessages,
+  removeAgentMessage,
+} from './offlineQueue';
+import { apiClient, extractErrorMessage, isNetworkError } from '../api/client';
 import { AgentChatResponse } from '../api/types';
+
+const MAX_NETWORK_RETRIES = 5;
 
 type SyncCallback = (options: {
   messageId: string;
@@ -24,9 +31,17 @@ export function useOfflineAgentSync(onSynced: SyncCallback) {
           await removeAgentMessage(item.id);
           onSynced({ messageId: item.id, response: data });
         } catch (error) {
+          const message = extractErrorMessage(error, 'Không thể gửi khi mất kết nối');
+
+          if (isNetworkError(error) && (item.attempts ?? 0) < MAX_NETWORK_RETRIES) {
+            await incrementAgentMessageAttempts(item.id);
+          } else {
+            await deadLetterAgentMessage(item, message);
+          }
+
           onSynced({
             messageId: item.id,
-            error: extractErrorMessage(error, 'Không thể gửi khi mất kết nối'),
+            error: message,
           });
         }
       }

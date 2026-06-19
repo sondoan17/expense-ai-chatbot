@@ -61,8 +61,7 @@ export function ChangePasswordPage() {
         newPassword: formData.newPassword,
       });
 
-      toast.success('Thành công', 'Mật khẩu đã được thay đổi thành công!');
-      navigate('/app/settings');
+      toast.success('Thành công', 'Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.');
     } catch (error) {
       console.error('Change password failed:', error);
       // Error is already handled by the mutation

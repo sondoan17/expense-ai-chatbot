@@ -96,10 +96,15 @@ export function useForgotPassword() {
 }
 
 export function useResetPassword() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (request: ResetPasswordRequest) => {
       const { data } = await apiClient.post<MessageResponse>('/auth/reset-password', request);
       return data;
+    },
+    onSuccess: () => {
+      queryClient.clear();
     },
     onError: (error) => {
       throw new Error(extractErrorMessage(error, 'Không thể đặt lại mật khẩu'));

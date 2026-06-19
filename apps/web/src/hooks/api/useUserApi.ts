@@ -92,9 +92,16 @@ export function useLogout() {
 }
 
 export function useChangePassword() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   return useMutation({
     mutationFn: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
       return changePassword(data);
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      navigate('/login', { replace: true });
     },
     onError: (error) => {
       throw new Error(extractErrorMessage(error, 'Thay đổi mật khẩu thất bại'));

@@ -7,7 +7,9 @@ import {
   Post,
   UnauthorizedException,
   Logger,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PublicUser } from './types/public-user.type';
@@ -19,6 +21,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePersonalityDto } from './dto/update-personality.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('users')
 export class UsersController {
@@ -28,6 +31,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly userSettingsService: UserSettingsService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly authService: AuthService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -67,12 +71,15 @@ export class UsersController {
   async changePassword(
     @CurrentUser() user: PublicUser,
     @Body() changePasswordDto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.usersService.changePassword(
+    const result = await this.usersService.changePassword(
       user.id,
       changePasswordDto.currentPassword,
       changePasswordDto.newPassword,
     );
+    this.authService.clearAuthCookie(res);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

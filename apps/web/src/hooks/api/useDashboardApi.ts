@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { BudgetStatusResponse, OverviewResponse, SummaryResponse } from '../../api/types';
 
+type DashboardCurrency = 'VND' | 'USD';
+
 const REFRESH_OPTIONS = {
   staleTime: 0,
   refetchOnWindowFocus: true,
@@ -9,12 +11,12 @@ const REFRESH_OPTIONS = {
   refetchOnMount: 'always' as const,
 };
 
-export function useSummary(period: string) {
+export function useSummary(period: string, currency: DashboardCurrency = 'VND') {
   return useQuery({
-    queryKey: ['transactions-summary', period],
+    queryKey: ['transactions-summary', period, currency],
     queryFn: async () => {
       const { data } = await apiClient.get<SummaryResponse>('/transactions/summary', {
-        params: { period },
+        params: { period, currency },
       });
       return data;
     },
@@ -22,12 +24,12 @@ export function useSummary(period: string) {
   });
 }
 
-export function useOverview() {
+export function useOverview(currency: DashboardCurrency = 'VND') {
   return useQuery({
-    queryKey: ['reports-overview', 'this_month'],
+    queryKey: ['reports-overview', 'this_month', currency],
     queryFn: async () => {
       const { data } = await apiClient.get<OverviewResponse>('/reports/overview', {
-        params: { period: 'this_month', recent: 10 },
+        params: { period: 'this_month', recent: 10, currency },
       });
       return data;
     },

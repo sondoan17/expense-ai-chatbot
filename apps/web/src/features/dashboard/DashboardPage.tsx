@@ -15,13 +15,15 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]['id'];
+type DashboardCurrency = 'VND' | 'USD';
 
 export function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+  const [selectedCurrency, setSelectedCurrency] = useState<DashboardCurrency>('VND');
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  const summaryQuery = useSummary(selectedPeriod);
-  const overviewQuery = useOverview();
+  const summaryQuery = useSummary(selectedPeriod, selectedCurrency);
+  const overviewQuery = useOverview(selectedCurrency);
   const budgetsQuery = useBudgetStatus();
 
   const { data: summary, isLoading: summaryLoading } = summaryQuery;
@@ -112,16 +114,31 @@ export function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Refresh Button */}
-                <button
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center hover:bg-sky-500/20 hover:border-sky-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 sm:w-5 sm:h-5 text-sky-400 ${isRefreshing ? 'animate-spin' : ''}`}
-                  />
-                </button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedCurrency}
+                    onChange={(event) => setSelectedCurrency(event.target.value as DashboardCurrency)}
+                    className="h-9 sm:h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 px-3 text-sm font-semibold text-sky-300 focus:outline-none focus:border-sky-500/50"
+                    aria-label="Chọn tiền tệ dashboard"
+                  >
+                    <option value="VND" className="bg-slate-800">
+                      VND
+                    </option>
+                    <option value="USD" className="bg-slate-800">
+                      USD
+                    </option>
+                  </select>
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center hover:bg-sky-500/20 hover:border-sky-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    aria-label="Làm mới dashboard"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 sm:w-5 sm:h-5 text-sky-400 ${isRefreshing ? 'animate-spin' : ''}`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -163,7 +180,7 @@ export function DashboardPage() {
               <OverviewTab
                 totals={summary ? summary.totals : null}
                 loading={summaryLoading}
-                formatCurrency={(n) => formatCurrency(n)}
+                formatCurrency={(n) => formatCurrency(n, selectedCurrency)}
                 transactionCount={summary?.transactionCount}
                 activeDays={summary?.activeDays}
                 avgExpensePerTransaction={summary?.avgExpensePerTransaction}
@@ -175,7 +192,11 @@ export function DashboardPage() {
             )}
 
             {activeTab === 'charts' && (
-              <ChartsTab doughnutData={doughnutData} lineData={lineData} />
+              <ChartsTab
+                doughnutData={doughnutData}
+                lineData={lineData}
+                formatCurrency={(n) => formatCurrency(n, selectedCurrency)}
+              />
             )}
 
             {activeTab === 'budgets' && (

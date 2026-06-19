@@ -17,6 +17,21 @@ type TransactionFormData = {
   categoryId?: string;
 };
 
+function formatDatetimeLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function datetimeLocalToIso(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  return new Date(value).toISOString();
+}
+
 export function TransactionForm() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const createTransaction = useCreateTransaction();
@@ -30,7 +45,7 @@ export function TransactionForm() {
     defaultValues: {
       type: 'EXPENSE',
       currency: 'VND',
-      occurredAt: new Date().toISOString().slice(0, 16),
+      occurredAt: formatDatetimeLocal(new Date()),
     },
   });
   const categoryOptions = getCategoryOptions();
@@ -39,6 +54,7 @@ export function TransactionForm() {
     const submitData = {
       ...data,
       currency: data.currency || 'VND',
+      occurredAt: datetimeLocalToIso(data.occurredAt),
       categoryId: selectedCategory || undefined,
     };
     createTransaction.mutate(submitData);

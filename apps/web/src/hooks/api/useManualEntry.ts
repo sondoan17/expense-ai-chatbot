@@ -11,9 +11,10 @@ export function useCreateTransaction() {
   return useMutation({
     mutationFn: createTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['summary'] });
-      queryClient.invalidateQueries({ queryKey: ['overview'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-overview'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets-status'] });
       success('Đã thêm giao dịch thành công');
       navigate('/app/dashboard');
     },
@@ -33,7 +34,7 @@ export function useCreateBudget() {
     mutationFn: createBudget,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      queryClient.invalidateQueries({ queryKey: ['budget-status'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets-status'] });
       success('Đã tạo ngân sách thành công');
       navigate('/app/dashboard');
     },
@@ -52,8 +53,8 @@ export function useCreateRecurringRule() {
   return useMutation({
     mutationFn: createRecurringRule,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['summary'] });
-      queryClient.invalidateQueries({ queryKey: ['overview'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-overview'] });
       success('Đã tạo lịch định kỳ thành công');
       navigate('/app/dashboard');
     },

@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
+const datetimeLocalSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, {
+  message: 'Thời gian không hợp lệ',
+});
+
 export const transactionSchema = z.object({
   type: z.enum(['EXPENSE', 'INCOME'] as const),
   amount: z.number().positive('Số tiền phải lớn hơn 0'),
   currency: z.enum(['VND', 'USD'] as const).default('VND'),
   note: z.string().max(255, 'Ghi chú không được quá 255 ký tự').optional(),
-  occurredAt: z.string().datetime().optional(),
+  occurredAt: datetimeLocalSchema.optional(),
   categoryId: z.string().optional(),
 });
 

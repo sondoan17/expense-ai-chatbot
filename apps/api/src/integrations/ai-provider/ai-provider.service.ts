@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { getRequiredEnv } from '../../common/config/required-env';
 
 type ChatRole = 'system' | 'user' | 'assistant';
 
@@ -51,20 +52,22 @@ export class AiProviderService {
   private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
-    const providerUrl = this.configService.get<string>('PROVIDER_URL') ?? '';
-
-    this.url = providerUrl.endsWith('/chat/completions')
+    const providerUrl = getRequiredEnv(this.configService, 'PROVIDER_URL');
+    const normalizedProviderUrl = providerUrl.endsWith('/chat/completions')
       ? providerUrl
       : `${providerUrl.replace(/\/$/, '')}/chat/completions`;
-    this.apiKey = this.configService.get<string>('PROVIDER_API_KEY') ?? '';
+
+    try {
+      this.url = new URL(normalizedProviderUrl).toString();
+    } catch {
+      throw new Error('PROVIDER_URL must be a valid URL');
+    }
+
+    this.apiKey = getRequiredEnv(this.configService, 'PROVIDER_API_KEY');
     this.model = this.configService.get<string>('AI_MODEL') ?? 'cx/gpt-5.5';
   }
 
   async complete(messages: AiProviderMessage[], options?: AiProviderOptions): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('AI provider API key is not configured');
-    }
-
     try {
       const payload: AiProviderRequestPayload = {
         model: options?.model ?? this.model,
