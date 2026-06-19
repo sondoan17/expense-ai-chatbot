@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, PiggyBank, Sparkles, WalletCards } from 'lucide-react';
 import { ChatBubble } from './components/ChatBubble';
 import { ChatComposer } from './components/ChatComposer';
 import { AgentChatResponse, ChatMessageDto } from '../../api/types';
@@ -12,7 +12,6 @@ import { useOnlineStatus } from '../../hooks/utils/useOnlineStatus';
 import { useChatHistory, useSendMessage, useActionHandler } from '../../hooks/api/useChatApi';
 import { useToast } from '../../contexts/ToastContext';
 import { ActionButton } from '../../components/ui';
-import './components/chat.css';
 
 interface ChatMessageItem {
   id: string;
@@ -30,6 +29,8 @@ const SUGGESTIONS = [
   'Đặt nguồn ngân sách ăn uống 2.000.000 VND cho tháng này',
   'Ghi nhận khoản thu 25.000.000 VND trong tháng này',
 ];
+
+const QUICK_ACTION_LABELS = ['Báo cáo tháng', 'Ngân sách ăn uống', 'Ghi nhận thu nhập'];
 
 function createMessage(
   role: 'user' | 'assistant',
@@ -461,15 +462,15 @@ export function ChatPage() {
 
   const suggestionButtons = useMemo(
     () =>
-      SUGGESTIONS.map((item) => (
+      SUGGESTIONS.map((item, index) => (
         <ActionButton
           key={item}
           size="sm"
-          className="shrink-0 quick-action text-xs sm:text-sm"
+          className="min-h-11 shrink-0 rounded-full border-sky-500/20 bg-sky-500/10 px-4 text-xs font-semibold text-sky-300 shadow-none hover:border-sky-500/40 hover:bg-sky-500/15 hover:text-sky-200 sm:text-sm"
           onClick={() => handleSend(item)}
           disabled={sendMessageMutation.isPending}
         >
-          {item}
+          {QUICK_ACTION_LABELS[index]}
         </ActionButton>
       )),
     [handleSend, sendMessageMutation.isPending],
@@ -478,16 +479,43 @@ export function ChatPage() {
   const isEmpty = combinedMessages.length === 0;
 
   return (
-    <div className="relative h-full">
+    <div className="relative h-full overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-b from-sky-500/10 via-blue-500/5 to-transparent rounded-full blur-3xl" />
-        <div className="absolute top-1/4 right-0 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute left-1/2 top-0 h-[360px] w-[520px] -translate-x-1/2 rounded-full bg-gradient-to-b from-sky-500/10 via-blue-500/5 to-transparent blur-3xl" />
+        <div className="absolute right-0 top-1/4 h-[280px] w-[280px] rounded-full bg-sky-300/5 blur-3xl" />
       </div>
 
-      <div className="flex flex-col h-full">
+      <div className="mx-auto flex h-full max-w-5xl flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
+        <header className="relative z-10 mb-3 overflow-hidden rounded-2xl border border-white/10 bg-[var(--bg-surface)]/80 shadow-lg shadow-black/10 backdrop-blur-xl sm:mb-4 sm:rounded-3xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-transparent to-blue-500/10" />
+          <div className="relative flex items-center justify-between gap-3 p-3 sm:p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-sky-500/25">
+                <PiggyBank className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-base font-bold text-[var(--text-primary)] sm:text-xl">
+                    Mimi tài chính
+                  </h1>
+                  <Sparkles className="hidden h-4 w-4 text-sky-400 sm:block" />
+                </div>
+                <p className="truncate text-xs text-[var(--text-muted)] sm:text-sm">
+                  Ghi thu chi, hỏi ngân sách, xem báo cáo bằng tiếng Việt.
+                </p>
+              </div>
+            </div>
+            <div className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-[var(--bg-primary)]/50 px-3 text-xs font-semibold text-[var(--text-muted)]">
+              <span className={`h-2 w-2 rounded-full ${online ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'}`} />
+              <span className="hidden sm:inline">{online ? 'Trực tuyến' : 'Ngoại tuyến'}</span>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--bg-surface)]/45 shadow-2xl shadow-black/10 backdrop-blur-xl">
         <div
-          className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto p-4 sm:p-6"
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-4 sm:gap-4 sm:px-5 sm:py-5"
           ref={listRef}
         >
           {isFetchingNextPage && (
@@ -501,13 +529,13 @@ export function ChatPage() {
           )}
           {isEmpty ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center px-6 py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-sky-400/20 to-blue-500/20 border border-sky-500/30 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center">
-                    <span className="text-white text-lg">💬</span>
+              <div className="px-5 py-10 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-sky-500/30 bg-gradient-to-br from-sky-400/20 to-blue-500/20">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white">
+                    <WalletCards className="h-5 w-5" />
                   </div>
                 </div>
-                <p className="text-[var(--text-muted)] text-sm sm:text-base max-w-md">
+                <p className="mx-auto max-w-sm text-sm leading-6 text-[var(--text-muted)] sm:text-base">
                   {historyLoading
                     ? 'Đang tải lịch sử hội thoại...'
                     : 'Bắt đầu trò chuyện với Mimi! Thử nói "Ăn phở 50k" hoặc "Tháng này tôi tiêu bao nhiêu?"'}
@@ -527,12 +555,12 @@ export function ChatPage() {
               >
                 <div>{message.content}</div>
                 {message.actions?.length ? (
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     {message.actions.map((action) => (
                       <ActionButton
                         key={`${message.id}-${action.id}`}
                         size="sm"
-                        className="text-xs sm:text-sm"
+                        className="min-h-11 rounded-full px-3 text-xs sm:text-sm"
                         onClick={() => handleActionClick(message.id, action)}
                         disabled={message.actionProcessing || !online || message.status !== 'sent'}
                       >
@@ -548,7 +576,7 @@ export function ChatPage() {
           {/* Scroll to bottom button */}
           {showScrollButton && (
             <button
-              className="fixed bottom-[120px] right-4 sm:right-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-white/10 bg-[var(--bg-surface)]/80 backdrop-blur-xl text-base sm:text-lg font-bold text-slate-100 shadow-lg shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-sky-500/10"
+              className="fixed bottom-[142px] right-4 z-20 grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-[var(--bg-surface)]/90 text-[var(--text-primary)] shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-sky-500/10 sm:bottom-[154px] sm:right-8 sm:h-12 sm:w-12"
               onClick={scrollToBottom}
               title="Xuống tin nhắn mới nhất"
             >
@@ -556,18 +584,22 @@ export function ChatPage() {
             </button>
           )}
         </div>
-        <div className="flex-shrink-0 border-t border-white/10 bg-[var(--bg-surface)]/60 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4">
+        <div className="shrink-0 border-t border-white/10 bg-[var(--bg-surface)]/85 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-5 sm:pb-4 sm:pt-4">
           <div className="mb-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Thao tác nhanh
+            </p>
             <div
-              className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-x-visible no-scrollbar scroll-smooth"
+              className="no-scrollbar flex flex-nowrap gap-2 overflow-x-auto scroll-smooth sm:flex-wrap sm:overflow-x-visible"
               role="tablist"
-              aria-label="Suggestions"
+              aria-label="Thao tác nhanh tài chính"
             >
               {suggestionButtons}
             </div>
           </div>
 
           <ChatComposer onSend={handleSend} disabled={sendMessageMutation.isPending} />
+        </div>
         </div>
       </div>
     </div>

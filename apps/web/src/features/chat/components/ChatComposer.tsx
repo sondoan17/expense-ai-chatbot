@@ -10,8 +10,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
+  const submitMessage = () => {
     const text = value.trim();
     if (!text) return;
     onSend(text);
@@ -21,10 +20,15 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
     }
   };
 
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    submitMessage();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      handleSubmit(event as unknown as FormEvent);
+      submitMessage();
     }
   };
 
@@ -43,18 +47,19 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Nhập tin nhắn cho Mimi..."
+        placeholder="Nhập khoản chi, ngân sách hoặc câu hỏi..."
         disabled={disabled}
         rows={1}
-        className="w-full min-h-[56px] sm:min-h-[64px] max-h-[200px] resize-none overflow-y-auto rounded-xl sm:rounded-2xl border border-white/10 bg-[var(--bg-primary)]/60 backdrop-blur-sm pl-3 pr-12 sm:pl-4 sm:pr-16 py-2.5 sm:py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:opacity-65"
+        className="max-h-[200px] min-h-14 w-full resize-none overflow-y-auto rounded-2xl border border-white/10 bg-[var(--bg-primary)]/70 py-3 pl-4 pr-14 text-sm leading-6 text-[var(--text-primary)] shadow-inner shadow-black/10 backdrop-blur-sm transition placeholder:text-[var(--text-muted)] focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:opacity-65 sm:min-h-16 sm:py-3.5 sm:pl-4 sm:pr-16 sm:text-base"
       />
       <button
         type="submit"
         disabled={disabled || !value.trim()}
-        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-r from-sky-400 to-blue-600 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:-translate-y-[calc(50%+1px)] hover:shadow-xl hover:shadow-sky-500/35 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:hover:translate-y-[-50%]"
+        className="absolute right-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-gradient-to-r from-sky-400 to-blue-600 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:-translate-y-[calc(50%+1px)] hover:shadow-xl hover:shadow-sky-500/35 disabled:cursor-not-allowed disabled:opacity-60 disabled:transform-none disabled:hover:translate-y-[-50%] sm:right-3 sm:h-12 sm:w-12"
+        aria-label="Gửi tin nhắn"
       >
-        <Send size={16} className="sm:hidden" />
-        <Send size={18} className="hidden sm:block" />
+        <Send size={18} className="sm:hidden" />
+        <Send size={20} className="hidden sm:block" />
       </button>
     </form>
   );

@@ -14,13 +14,16 @@ export function ChatBubble({ role, status, children, timestamp }: ChatBubbleProp
     (s: { user: { avatar?: string | null; email: string } | null }) => s.user,
   );
   return (
-    <div className={`flex items-start gap-2 sm:gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`}>
+    <div
+      className={`flex items-end gap-2 sm:items-start sm:gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`}
+    >
       {/* Avatar với gradient matching landing page */}
       <div
-        className={`grid h-8 w-8 sm:h-11 sm:w-11 place-items-center rounded-full font-bold tracking-wide flex-shrink-0 text-xs sm:text-sm shadow-lg ${role === 'user'
+        className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-xs font-bold tracking-wide shadow-lg ring-2 ring-white/10 sm:h-10 sm:w-10 sm:text-sm ${
+          role === 'user'
             ? 'bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-sky-500/25'
             : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-emerald-500/25'
-          }`}
+        }`}
       >
         {role === 'assistant' && (
           <img
@@ -46,15 +49,16 @@ export function ChatBubble({ role, status, children, timestamp }: ChatBubbleProp
 
       {/* Chat bubble với design matching landing */}
       <div
-        className={`max-w-[min(620px,85vw)] sm:max-w-[min(620px,70vw)] rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-[0.98rem] leading-5 sm:leading-6 flex flex-col gap-1.5 sm:gap-2 shadow-lg ${role === 'user'
-            ? 'bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-br-md shadow-sky-500/25'
-            : 'bg-[var(--bg-surface)]/80 backdrop-blur-sm border border-white/10 rounded-bl-md shadow-black/20'
-          }`}
+        className={`flex max-w-[min(19rem,78vw)] flex-col gap-1.5 rounded-2xl px-3.5 py-2.5 text-[0.95rem] leading-6 shadow-lg sm:max-w-[min(620px,68vw)] sm:gap-2 sm:px-4 sm:py-3 sm:text-[0.98rem] ${
+          role === 'user'
+            ? 'rounded-br-md bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-sky-500/25'
+            : 'rounded-bl-md border border-white/10 bg-[var(--bg-surface)]/85 text-[var(--text-primary)] shadow-black/20 backdrop-blur-sm'
+        }`}
         data-status={status}
       >
         <div className="whitespace-pre-wrap break-words">{children}</div>
         <div
-          className={`flex items-center gap-1.5 sm:gap-2 text-[0.7rem] sm:text-[0.75rem] ${role === 'user' ? 'text-white/70' : 'text-[var(--text-muted)]'}`}
+          className={`flex flex-wrap items-center gap-1.5 text-[0.7rem] sm:gap-2 sm:text-[0.75rem] ${role === 'user' ? 'text-white/75' : 'text-[var(--text-muted)]'}`}
         >
           <span>{timestamp}</span>
           {status === 'pending' ? (

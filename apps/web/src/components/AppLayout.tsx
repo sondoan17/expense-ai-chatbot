@@ -216,8 +216,10 @@ export function AppLayout() {
       </nav>
 
       {/* === MAIN CONTENT === */}
-      <main className="flex-1 overflow-auto">
-        <Outlet />
+      <main className="min-h-0 flex-1 overflow-auto">
+        <div className="h-full min-h-0">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
