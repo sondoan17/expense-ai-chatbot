@@ -356,6 +356,19 @@ export class BudgetHandlerService {
 
     const status = await this.budgetsService.status(user.id, budget.id);
 
+    if (this.shouldUseTemplateReplies()) {
+      const fallbackReply = this.buildBudgetStatusFallbackReply(status, timezone, language);
+      const reply = getReplyWithFallback(payload, fallbackReply, language);
+      logReplySource(payload, this.logger);
+
+      return {
+        reply,
+        intent: payload.intent,
+        parsed: payload,
+        data: { status },
+      };
+    }
+
     // Generate AI response for budget status - data injection approach
     try {
       // Format data context for LLM
@@ -391,30 +404,7 @@ export class BudgetHandlerService {
         error,
       );
 
-      // Fallback to original template logic
-      const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
-      const limitLabel = formatCurrency(
-        status.budget.limitAmount,
-        status.budget.currency,
-        language,
-      );
-      const percentLabel = `${status.percentage}%`;
-      const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
-      const overspentLabel =
-        status.overBudget && status.overspent > 0
-          ? formatCurrency(status.overspent, status.budget.currency, language)
-          : undefined;
-      const endDateLabel = status.range?.end ? formatDate(status.range.end, timezone) : undefined;
-
-      const fallbackReply = buildBudgetStatusReply(language, {
-        amountLabel,
-        limitLabel,
-        percentLabel,
-        remainingLabel,
-        endDateLabel,
-        overBudget: status.overBudget,
-        overspentLabel,
-      });
+      const fallbackReply = this.buildBudgetStatusFallbackReply(status, timezone, language);
 
       const reply = getReplyWithFallback(payload, fallbackReply, language);
       logReplySource(payload, this.logger);
@@ -800,5 +790,35 @@ export class BudgetHandlerService {
     }
 
     return RECURRING_UPDATE_MARKERS.some((marker) => normalized.includes(marker));
+  }
+
+  private shouldUseTemplateReplies(): boolean {
+    return this.configService.get<string>('AGENT_QUERY_TEMPLATE_REPLIES') === 'true';
+  }
+
+  private buildBudgetStatusFallbackReply(
+    status: Awaited<ReturnType<BudgetsService['status']>>,
+    timezone: string,
+    language: AgentLanguage,
+  ): string {
+    const amountLabel = formatCurrency(status.spent, status.budget.currency, language);
+    const limitLabel = formatCurrency(status.budget.limitAmount, status.budget.currency, language);
+    const percentLabel = `${status.percentage}%`;
+    const remainingLabel = formatCurrency(status.remaining, status.budget.currency, language);
+    const overspentLabel =
+      status.overBudget && status.overspent > 0
+        ? formatCurrency(status.overspent, status.budget.currency, language)
+        : undefined;
+    const endDateLabel = status.range?.end ? formatDate(status.range.end, timezone) : undefined;
+
+    return buildBudgetStatusReply(language, {
+      amountLabel,
+      limitLabel,
+      percentLabel,
+      remainingLabel,
+      endDateLabel,
+      overBudget: status.overBudget,
+      overspentLabel,
+    });
   }
 }

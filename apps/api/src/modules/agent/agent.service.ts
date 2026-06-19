@@ -113,7 +113,7 @@ export class AgentService {
 
     try {
       const raw = await this.aiProviderService.complete(classificationMessages, {
-        max_tokens: 350,
+        max_tokens: 1000,
         temperature: 0.1, // Low temperature for accurate classification
         top_p: 0.8,
         response_format: { type: 'json_object' },
@@ -174,6 +174,8 @@ export class AgentService {
       } else if (isComplexIntent) {
         // For complex intents: use direct handler (no 1-shot, no data injection)
         result = await this.handleComplexIntent(user, trimmed, payload, timezone, language);
+      } else if (this.isSimpleTransactionIntent(payload.intent)) {
+        result = await this.handleAddTransaction(user, trimmed, payload, language);
       } else {
         // For simple transaction intents: use 1-shot approach with personality
         result = await this.handleTransactionIntent(
@@ -437,7 +439,7 @@ export class AgentService {
 
     try {
       const raw = await this.aiProviderService.complete(chatMessages, {
-        max_tokens: 450,
+        max_tokens: 1000,
         temperature: 0.3,
         top_p: 0.8,
         response_format: { type: 'json_object' },
@@ -628,6 +630,10 @@ export class AgentService {
       return DEFAULT_LANGUAGE;
     }
     return payload.language === 'en' ? 'en' : 'vi';
+  }
+
+  private isSimpleTransactionIntent(intent: string): boolean {
+    return intent === 'add_expense' || intent === 'add_income';
   }
 
   private detectLanguageFromMessage(message?: string): AgentLanguage {
