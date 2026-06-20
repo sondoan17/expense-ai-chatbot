@@ -24,6 +24,7 @@
     "axios": "^1.7.9",
     "jotai": "^2.12.1",
     "localforage": "^1.10.0",
+    "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zmp-sdk": "latest",

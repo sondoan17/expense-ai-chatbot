@@ -23,6 +23,9 @@ export interface MessageResponse {
 
 export interface AuthResponse {
   user: UserDto;
+}
+
+export interface TokenAuthResponse extends AuthResponse {
   accessToken: string;
 }
 

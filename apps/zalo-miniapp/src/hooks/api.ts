@@ -21,6 +21,7 @@ import {
   MessageResponse,
   OverviewResponse,
   SummaryResponse,
+  TokenAuthResponse,
   UserDto,
 } from '../api/types';
 
@@ -46,7 +47,7 @@ export function useLogin() {
   const navigate = useNavigate();
   return useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+      const response = await apiClient.post<TokenAuthResponse>('/auth/login', credentials);
       return response.data;
     },
     onSuccess: (data) => {
@@ -65,7 +66,7 @@ export function useRegister() {
   const navigate = useNavigate();
   return useMutation({
     mutationFn: async (input: { email: string; password: string; name?: string }) => {
-      const response = await apiClient.post<AuthResponse>('/auth/register', input);
+      const response = await apiClient.post<TokenAuthResponse>('/auth/register', input);
       return response.data;
     },
     onSuccess: (data) => {

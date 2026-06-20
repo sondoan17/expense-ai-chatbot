@@ -13,13 +13,17 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  if (accessToken) {
+  if (isValidAccessToken(accessToken)) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
 
 export function setAccessToken(token: string): void {
+  if (!isValidAccessToken(token)) {
+    throw new Error('API không trả về access token hợp lệ');
+  }
+
   accessToken = token;
   localStorage.setItem(accessTokenKey, token);
 }
@@ -30,7 +34,12 @@ export function clearAccessToken(): void {
 }
 
 function readStoredAccessToken(): string | null {
-  return localStorage.getItem(accessTokenKey);
+  const storedToken = localStorage.getItem(accessTokenKey);
+  return isValidAccessToken(storedToken) ? storedToken : null;
+}
+
+function isValidAccessToken(token: string | null | undefined): token is string {
+  return typeof token === 'string' && token.trim().length > 0 && token !== 'undefined';
 }
 
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi'): string {
