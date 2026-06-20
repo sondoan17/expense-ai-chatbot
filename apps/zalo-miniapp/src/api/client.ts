@@ -1,5 +1,6 @@
 import axios, { isAxiosError } from 'axios';
 
+import { getNativeString, removeNativeItem, setNativeString } from '../storage/nativeStorage';
 import { UserSettings } from './types';
 
 const baseURL = import.meta.env.VITE_ZALO_MINIAPP_API_BASE_URL ?? 'http://localhost:4000/api';
@@ -25,16 +26,16 @@ export function setAccessToken(token: string): void {
   }
 
   accessToken = token;
-  localStorage.setItem(accessTokenKey, token);
+  setNativeString(accessTokenKey, token);
 }
 
 export function clearAccessToken(): void {
   accessToken = null;
-  localStorage.removeItem(accessTokenKey);
+  removeNativeItem(accessTokenKey);
 }
 
 function readStoredAccessToken(): string | null {
-  const storedToken = localStorage.getItem(accessTokenKey);
+  const storedToken = getNativeString(accessTokenKey);
   return isValidAccessToken(storedToken) ? storedToken : null;
 }
 

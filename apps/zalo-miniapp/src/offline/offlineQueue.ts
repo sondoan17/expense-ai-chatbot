@@ -1,4 +1,4 @@
-import localforage from 'localforage';
+import { getNativeJson, setNativeJson } from '../storage/nativeStorage';
 
 const QUEUE_KEY = 'agent-message-queue';
 
@@ -9,21 +9,18 @@ export interface AgentQueueItem {
   attempts?: number;
 }
 
-const store = localforage.createInstance({ name: 'mimi-zalo', storeName: 'offline-queue' });
-
 export async function enqueueAgentMessage(item: AgentQueueItem): Promise<void> {
   const queue = await peekAgentMessages();
-  await store.setItem(QUEUE_KEY, [...queue, item]);
+  setNativeJson(QUEUE_KEY, [...queue, item]);
 }
 
 export async function peekAgentMessages(): Promise<AgentQueueItem[]> {
-  const queue = await store.getItem<AgentQueueItem[]>(QUEUE_KEY);
-  return queue ?? [];
+  return getNativeJson<AgentQueueItem[]>(QUEUE_KEY, []);
 }
 
 export async function removeAgentMessage(id: string): Promise<void> {
   const queue = await peekAgentMessages();
-  await store.setItem(
+  setNativeJson(
     QUEUE_KEY,
     queue.filter((item) => item.id !== id),
   );

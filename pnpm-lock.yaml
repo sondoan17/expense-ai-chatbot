@@ -293,9 +293,6 @@ importers:
       jotai:
         specifier: ^2.12.1
         version: 2.20.1(@babel/core@7.28.5)(@babel/template@7.27.2)(@types/react@18.3.27)(react@18.3.1)
-      localforage:
-        specifier: ^1.10.0
-        version: 1.10.0
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@18.3.1)
