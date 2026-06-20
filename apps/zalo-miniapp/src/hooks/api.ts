@@ -1,7 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'zmp-ui';
 
-import { apiClient, extractErrorMessage, getUserSettings, isUnauthorized, updatePersonality } from '../api/client';
+import {
+  apiClient,
+  clearAccessToken,
+  extractErrorMessage,
+  getUserSettings,
+  isUnauthorized,
+  setAccessToken,
+  updatePersonality,
+} from '../api/client';
 import { createBudget, createRecurringRule, createTransaction } from '../api/manual-entry';
 import {
   AgentChatResponse,
@@ -42,6 +50,7 @@ export function useLogin() {
       return response.data;
     },
     onSuccess: (data) => {
+      setAccessToken(data.accessToken);
       queryClient.setQueryData(['user', 'me'], data.user);
       navigate('/chat', { replace: true });
     },
@@ -60,6 +69,7 @@ export function useRegister() {
       return response.data;
     },
     onSuccess: (data) => {
+      setAccessToken(data.accessToken);
       queryClient.setQueryData(['user', 'me'], data.user);
       navigate('/chat', { replace: true });
     },
@@ -78,6 +88,7 @@ export function useLogout() {
       return response.data;
     },
     onSettled: () => {
+      clearAccessToken();
       queryClient.clear();
       navigate('/login', { replace: true });
     },

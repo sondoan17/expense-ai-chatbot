@@ -20,7 +20,7 @@ export class AuthController {
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.register(dto);
     this.authService.setAuthCookie(res, result.accessToken);
-    return { user: result.user };
+    return { user: result.user, accessToken: result.accessToken };
   }
 
   @UseGuards(LocalAuthGuard)
@@ -32,7 +32,7 @@ export class AuthController {
   ) {
     const result = await this.authService.login(req.user);
     this.authService.setAuthCookie(res, result.accessToken);
-    return { user: result.user };
+    return { user: result.user, accessToken: result.accessToken };
   }
 
   @Post('logout')

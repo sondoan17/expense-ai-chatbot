@@ -3,12 +3,35 @@ import axios, { isAxiosError } from 'axios';
 import { UserSettings } from './types';
 
 const baseURL = import.meta.env.VITE_ZALO_MINIAPP_API_BASE_URL ?? 'http://localhost:4000/api';
+const accessTokenKey = 'mimi_zalo_access_token';
+
+let accessToken: string | null = readStoredAccessToken();
 
 export const apiClient = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
 });
+
+apiClient.interceptors.request.use((config) => {
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+export function setAccessToken(token: string): void {
+  accessToken = token;
+  localStorage.setItem(accessTokenKey, token);
+}
+
+export function clearAccessToken(): void {
+  accessToken = null;
+  localStorage.removeItem(accessTokenKey);
+}
+
+function readStoredAccessToken(): string | null {
+  return localStorage.getItem(accessTokenKey);
+}
 
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi'): string {
   if (isAxiosError(error)) {

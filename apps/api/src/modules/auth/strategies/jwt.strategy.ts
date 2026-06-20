@@ -20,6 +20,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ) {
     super({
       jwtFromRequest: (req: Request) => {
+        const authorization = req.headers.authorization;
+        const bearerPrefix = 'Bearer ';
+
+        if (authorization?.startsWith(bearerPrefix)) {
+          return authorization.slice(bearerPrefix.length);
+        }
+
         return req.cookies?.access_token || null;
       },
       ignoreExpiration: false,

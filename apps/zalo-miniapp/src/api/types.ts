@@ -23,6 +23,7 @@ export interface MessageResponse {
 
 export interface AuthResponse {
   user: UserDto;
+  accessToken: string;
 }
 
 export interface TransactionDto {
